@@ -4,42 +4,51 @@
 @theme {
   --font-sans: "Outfit", "Inter", ui-sans-serif, system-ui, sans-serif;
   
-  --color-hub-black: #050505;
-  --color-hub-purple: #9d00ff;
-  --color-hub-blue: #00d2ff;
-  --color-hub-magenta: #ff0080;
-  --color-hub-gold: #ffcc00;
+  --color-hub-black: #020617; /* Deep Space Blue/Black */
+  --color-hub-purple: #7c3aed; /* Nebula Purple */
+  --color-hub-blue: #38bdf8; /* Star Blue */
+  --color-hub-magenta: #db2777; /* Cosmic Pink */
+  --color-hub-gold: #fbbf24; /* Starlight Gold */
 }
 
 @layer base {
   body {
     @apply bg-hub-black text-white font-sans antialiased selection:bg-hub-purple selection:text-white;
+    background-image: 
+      radial-gradient(circle at 20% 30%, rgba(124, 58, 237, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(56, 189, 248, 0.1) 0%, transparent 40%),
+      url('https://www.transparenttextures.com/patterns/stardust.png');
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+    @apply bg-white/5 backdrop-blur-2xl border border-white/10;
   }
   
   .glow-purple {
-    box-shadow: 0 0 30px -5px rgba(157, 0, 255, 0.5);
+    box-shadow: 0 0 40px -10px rgba(124, 58, 237, 0.6);
   }
   
   .glow-blue {
-    box-shadow: 0 0 30px -5px rgba(0, 210, 255, 0.5);
+    box-shadow: 0 0 40px -10px rgba(56, 189, 248, 0.6);
   }
 
-  .text-gradient-purple-blue {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-hub-purple via-hub-blue to-hub-magenta;
+  .text-gradient-cosmic {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-hub-blue via-hub-purple to-hub-magenta;
   }
 
-  .bg-mesh {
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(157, 0, 255, 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(0, 210, 255, 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(255, 0, 128, 0.1) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(255, 204, 0, 0.05) 0px, transparent 50%);
+  .bg-nebula {
+    background: radial-gradient(circle at center, rgba(124, 58, 237, 0.05) 0%, rgba(2, 6, 23, 0) 70%);
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
   }
 
   @keyframes spotlight {
