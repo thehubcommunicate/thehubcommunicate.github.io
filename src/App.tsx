@@ -329,12 +329,15 @@ const Hero = ({ onOpenBooking }: { onOpenBooking: () => void }) => {
             >
               Book không gian ngay
             </button>
-            <a 
-              href="#pricing"
+            <button 
+              onClick={() => {
+                const element = document.getElementById("pricing");
+                if (element) element.scrollIntoView({ behavior: "smooth" });
+              }}
               className="w-full sm:w-auto px-10 py-4 glass rounded-full font-bold text-lg hover:bg-white/10 transition-all border-white/20 flex items-center justify-center"
             >
               Xem bảng giá
-            </a>
+            </button>
           </div>
         </motion.div>
       </div>
