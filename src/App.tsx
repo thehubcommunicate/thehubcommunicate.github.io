@@ -28,7 +28,11 @@ import {
   BookOpen,
   Camera,
   Printer,
-  Music
+  Music,
+  CreditCard,
+  QrCode,
+  Wallet,
+  X
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -39,7 +43,201 @@ const getLink = (path: string) => `${BASE_URL}/${path}`;
 
 // --- Components ---
 
-const Navbar = () => {
+const BookingModal = ({ isOpen, onClose, initialStep = 1, initialData = {} }: { isOpen: boolean, onClose: () => void, initialStep?: number, initialData?: any }) => {
+  const [step, setStep] = useState(initialStep);
+  const [bookingData, setBookingData] = useState({
+    service: initialData.service || "",
+    date: "",
+    time: "",
+    package: initialData.package || ""
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep(initialStep);
+      setBookingData(prev => ({ ...prev, ...initialData }));
+    }
+  }, [isOpen, initialStep, initialData]);
+
+  if (!isOpen) return null;
+
+  const services = [
+    { id: "workshop", title: "Workshop Space", icon: <Users /> },
+    { id: "networking", title: "Networking Lounge", icon: <Globe /> },
+    { id: "talkshow", title: "Talkshow Stage", icon: <Mic2 /> },
+    { id: "training", title: "Training Room", icon: <Monitor /> },
+    { id: "launch", title: "Product Launch", icon: <Zap /> },
+  ];
+
+  const timeSlots = ["08:00 - 12:00", "13:00 - 17:00", "18:00 - 22:00", "Full Day"];
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-hub-black/80 backdrop-blur-xl"
+      />
+      
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        className="relative w-full max-w-2xl glass rounded-[3rem] border-white/10 overflow-hidden shadow-2xl"
+      >
+        <button onClick={onClose} className="absolute top-8 right-8 p-2 hover:bg-white/10 rounded-full transition-colors z-10">
+          <X className="w-6 h-6" />
+        </button>
+
+        <div className="p-8 md:p-12">
+          {/* Progress Bar */}
+          <div className="flex items-center justify-between mb-12 max-w-xs mx-auto">
+            {[1, 2, 3].map((s) => (
+              <div key={s} className="flex items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${step >= s ? "bg-hub-purple text-white" : "bg-white/10 text-gray-500"}`}>
+                  {s}
+                </div>
+                {s < 3 && <div className={`w-12 h-px mx-2 ${step > s ? "bg-hub-purple" : "bg-white/10"}`} />}
+              </div>
+            ))}
+          </div>
+
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <motion.div 
+                key="step1"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                <h2 className="text-3xl font-bold mb-2">Chọn Dịch Vụ</h2>
+                <p className="text-gray-400 mb-8">Vui lòng chọn loại không gian bạn muốn đặt.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {services.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        setBookingData({ ...bookingData, service: s.title });
+                        setStep(2);
+                      }}
+                      className={`flex items-center gap-4 p-6 rounded-2xl border transition-all text-left group ${bookingData.service === s.title ? "bg-hub-purple/20 border-hub-purple" : "glass border-white/5 hover:border-white/20"}`}
+                    >
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${bookingData.service === s.title ? "bg-hub-purple text-white" : "bg-white/10 text-hub-purple group-hover:bg-hub-purple group-hover:text-white"}`}>
+                        {s.icon}
+                      </div>
+                      <span className="font-bold">{s.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {step === 2 && (
+              <motion.div 
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                <h2 className="text-3xl font-bold mb-2">Chọn Thời Gian</h2>
+                <p className="text-gray-400 mb-8">Chọn ngày và khung giờ tổ chức sự kiện.</p>
+                <div className="space-y-6">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2 block">Ngày tổ chức</label>
+                    <input 
+                      type="date" 
+                      className="w-full p-4 rounded-xl glass border-white/5 focus:border-hub-blue outline-none transition-all"
+                      onChange={(e) => setBookingData({ ...bookingData, date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2 block">Khung giờ</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {timeSlots.map((slot) => (
+                        <button
+                          key={slot}
+                          onClick={() => setBookingData({ ...bookingData, time: slot })}
+                          className={`p-4 rounded-xl border text-sm font-bold transition-all ${bookingData.time === slot ? "bg-hub-blue/20 border-hub-blue text-hub-blue" : "glass border-white/5 hover:border-white/20"}`}
+                        >
+                          {slot}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-4 pt-4">
+                    <button onClick={() => setStep(1)} className="flex-1 py-4 glass rounded-xl font-bold">Quay lại</button>
+                    <button 
+                      disabled={!bookingData.date || !bookingData.time}
+                      onClick={() => setStep(3)} 
+                      className="flex-1 py-4 bg-hub-purple rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Tiếp theo
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div 
+                key="step3"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                <h2 className="text-3xl font-bold mb-2">Thanh Toán</h2>
+                <p className="text-gray-400 mb-8">Xác nhận thông tin và chọn phương thức thanh toán.</p>
+                
+                <div className="glass p-6 rounded-2xl border-white/5 mb-8">
+                  <div className="flex justify-between mb-4 pb-4 border-b border-white/5">
+                    <span className="text-gray-400 text-sm">Dịch vụ:</span>
+                    <span className="font-bold">{bookingData.service || "Chưa chọn"}</span>
+                  </div>
+                  <div className="flex justify-between mb-4 pb-4 border-b border-white/5">
+                    <span className="text-gray-400 text-sm">Ngày:</span>
+                    <span className="font-bold">{bookingData.date || "Chưa chọn"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400 text-sm">Khung giờ:</span>
+                    <span className="font-bold">{bookingData.time || "Chưa chọn"}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                  <button className="flex flex-col items-center gap-2 p-4 glass rounded-xl border-white/5 hover:border-hub-blue transition-all">
+                    <CreditCard className="w-6 h-6 text-hub-blue" />
+                    <span className="text-[10px] font-bold uppercase">Thẻ</span>
+                  </button>
+                  <button className="flex flex-col items-center gap-2 p-4 glass rounded-xl border-white/5 hover:border-hub-purple transition-all">
+                    <QrCode className="w-6 h-6 text-hub-purple" />
+                    <span className="text-[10px] font-bold uppercase">QR Code</span>
+                  </button>
+                  <button className="flex flex-col items-center gap-2 p-4 glass rounded-xl border-white/5 hover:border-hub-magenta transition-all">
+                    <Wallet className="w-6 h-6 text-hub-magenta" />
+                    <span className="text-[10px] font-bold uppercase">Ví điện tử</span>
+                  </button>
+                </div>
+
+                <button 
+                  onClick={() => {
+                    alert("Cảm ơn bạn đã đặt lịch tại The Hub! Chúng tôi sẽ liên hệ sớm nhất.");
+                    onClose();
+                  }}
+                  className="w-full py-5 bg-gradient-to-r from-hub-purple to-hub-blue rounded-2xl font-bold text-lg glow-purple"
+                >
+                  Xác nhận thanh toán
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const Navbar = ({ onOpenBooking }: { onOpenBooking: () => void }) => {
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -62,7 +260,7 @@ const Navbar = () => {
           <a href="#pricing" className="hover:text-hub-blue transition-colors">Bảng giá</a>
           <a href="#terms" className="hover:text-hub-blue transition-colors">Điều khoản</a>
           <button 
-            onClick={() => window.location.href = getLink("datlich")}
+            onClick={onOpenBooking}
             className="px-6 py-2 bg-white text-hub-black rounded-full font-bold hover:bg-hub-blue hover:text-white transition-all duration-300"
           >
             Đặt lịch ngay
@@ -73,7 +271,7 @@ const Navbar = () => {
   );
 };
 
-const Hero = () => {
+const Hero = ({ onOpenBooking }: { onOpenBooking: () => void }) => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
       <div className="spotlight" />
@@ -123,17 +321,17 @@ const Hero = () => {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button 
-              onClick={() => window.location.href = getLink("booknow")}
+              onClick={onOpenBooking}
               className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-hub-purple to-hub-blue rounded-full font-bold text-lg hover:scale-105 transition-transform glow-purple"
             >
               Book không gian ngay
             </button>
-            <button 
-              onClick={() => window.location.href = getLink("xembanggia")}
-              className="w-full sm:w-auto px-10 py-4 glass rounded-full font-bold text-lg hover:bg-white/10 transition-all border-white/20"
+            <a 
+              href="#pricing"
+              className="w-full sm:w-auto px-10 py-4 glass rounded-full font-bold text-lg hover:bg-white/10 transition-all border-white/20 flex items-center justify-center"
             >
               Xem bảng giá
-            </button>
+            </a>
           </div>
         </motion.div>
       </div>
@@ -247,7 +445,7 @@ const About = () => {
   );
 };
 
-const Services = () => {
+const Services = ({ onOpenBooking }: { onOpenBooking: (service: string) => void }) => {
   const mainServices = [
     { icon: <Users />, title: "Workshop Space", desc: "Không gian tối ưu cho đào tạo, chia sẻ kỹ năng với đầy đủ trang thiết bị hỗ trợ giảng dạy.", link: "workshop-space" },
     { icon: <Globe />, title: "Networking Lounge", desc: "Khu vực mở hiện đại, lý tưởng cho các buổi giao lưu, kết nối và pitching dự án.", link: "networking-lounge" },
@@ -269,7 +467,7 @@ const Services = () => {
             <motion.div
               key={i}
               whileHover={{ y: -10 }}
-              onClick={() => window.location.href = getLink(s.link)}
+              onClick={() => onOpenBooking(s.title)}
               className="glass p-8 rounded-3xl border-white/5 hover:border-hub-purple/50 transition-all group cursor-pointer"
             >
               <div className="w-12 h-12 rounded-xl bg-hub-purple/10 flex items-center justify-center mb-6 text-hub-purple group-hover:bg-hub-purple group-hover:text-white transition-all">
@@ -278,7 +476,7 @@ const Services = () => {
               <h3 className="text-xl font-bold mb-3">{s.title}</h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-6">{s.desc}</p>
               <div className="flex items-center gap-2 text-hub-blue text-xs font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                Chi tiết dịch vụ <ChevronRight className="w-4 h-4" />
+                Đặt lịch ngay <ChevronRight className="w-4 h-4" />
               </div>
             </motion.div>
           ))}
@@ -319,7 +517,7 @@ const VenueLayouts = () => {
   );
 };
 
-const Pricing = () => {
+const Pricing = ({ onSelectPackage }: { onSelectPackage: (pkg: string) => void }) => {
   const tiers = [
     { name: "Cơ bản", price: "500k", unit: "giờ", features: ["Không gian tiêu chuẩn", "Wifi tốc độ cao", "Nước uống", "Hỗ trợ kỹ thuật"], color: "white" },
     { name: "Chuyên nghiệp", price: "1.2tr", unit: "giờ", features: ["Màn hình LED P2.5", "Âm thanh stage", "MC hỗ trợ", "Teabreak nhẹ"], color: "hub-purple", popular: true },
@@ -354,13 +552,44 @@ const Pricing = () => {
                 ))}
               </ul>
               <button 
-                onClick={() => window.location.href = getLink("xembanggia")}
+                onClick={() => onSelectPackage(t.name)}
                 className={`w-full py-4 rounded-full font-bold transition-all ${t.popular ? "bg-hub-purple" : "glass hover:bg-white/10"}`}
               >
                 Chọn gói này
               </button>
             </motion.div>
           ))}
+        </div>
+        
+        {/* Detailed Pricing Table Suggestion */}
+        <div className="mt-20 glass p-8 md:p-12 rounded-[2.5rem] border-white/5 overflow-x-auto">
+          <h3 className="text-2xl font-bold mb-8 text-center">Chi Tiết Dịch Vụ Đi Kèm</h3>
+          <table className="w-full text-left border-collapse min-w-[600px]">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="py-4 text-xs font-bold uppercase tracking-widest text-gray-500">Dịch vụ</th>
+                <th className="py-4 text-xs font-bold uppercase tracking-widest text-gray-500">Cơ bản</th>
+                <th className="py-4 text-xs font-bold uppercase tracking-widest text-gray-500">Chuyên nghiệp</th>
+                <th className="py-4 text-xs font-bold uppercase tracking-widest text-gray-500">Trọn gói</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {[
+                { label: "Màn hình LED P2.5", basic: "Không", pro: "Có", full: "Có" },
+                { label: "Âm thanh Stage", basic: "Cơ bản", pro: "Chuyên nghiệp", full: "Full System" },
+                { label: "MC / Host", basic: "Không", pro: "1 MC", full: "Team MC" },
+                { label: "Teabreak", basic: "Nước lọc", pro: "Bánh & Trà", full: "Buffet nhẹ" },
+                { label: "Thời gian", basic: "Theo giờ", pro: "Theo giờ", full: "Cả ngày" },
+              ].map((row, i) => (
+                <tr key={i} className="border-b border-white/5 hover:bg-white/2 transition-colors">
+                  <td className="py-4 font-medium">{row.label}</td>
+                  <td className="py-4 text-gray-500">{row.basic}</td>
+                  <td className="py-4 text-hub-purple font-bold">{row.pro}</td>
+                  <td className="py-4 text-hub-blue font-bold">{row.full}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -490,7 +719,7 @@ const BookingForm = () => {
   );
 };
 
-const EventSuggestions = () => {
+const EventSuggestions = ({ onOpenBooking }: { onOpenBooking: (service: string) => void }) => {
   const suggestions = [
     { 
       title: "Tổ chức Sinh nhật", 
@@ -531,7 +760,7 @@ const EventSuggestions = () => {
               key={i}
               whileHover={{ y: -10 }}
               className="glass p-8 rounded-3xl border-white/5 hover:border-hub-blue/50 transition-all group cursor-pointer"
-              onClick={() => window.location.href = getLink(s.link)}
+              onClick={() => onOpenBooking(s.title)}
             >
               <div className="w-12 h-12 rounded-xl bg-hub-blue/10 flex items-center justify-center mb-6 text-hub-blue group-hover:bg-hub-blue group-hover:text-white transition-all">
                 {s.icon}
@@ -648,14 +877,41 @@ const Footer = () => {
 // --- Main App ---
 
 export default function App() {
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [bookingInitialStep, setBookingInitialStep] = useState(1);
+  const [bookingInitialData, setBookingInitialData] = useState({});
+
+  const handleOpenBooking = (service?: string) => {
+    setBookingInitialStep(service ? 2 : 1);
+    setBookingInitialData({ service: service || "" });
+    setIsBookingOpen(true);
+  };
+
+  const handleSelectPackage = (pkg: string) => {
+    setBookingInitialStep(3);
+    setBookingInitialData({ package: pkg });
+    setIsBookingOpen(true);
+  };
+
   return (
     <div className="min-h-screen selection:bg-hub-purple selection:text-white">
-      <Navbar />
-      <Hero />
+      <AnimatePresence>
+        {isBookingOpen && (
+          <BookingModal 
+            isOpen={isBookingOpen} 
+            onClose={() => setIsBookingOpen(false)} 
+            initialStep={bookingInitialStep}
+            initialData={bookingInitialData}
+          />
+        )}
+      </AnimatePresence>
+
+      <Navbar onOpenBooking={() => handleOpenBooking()} />
+      <Hero onOpenBooking={() => handleOpenBooking()} />
       <QuickHighlights />
       <About />
-      <Services />
-      <EventSuggestions />
+      <Services onOpenBooking={handleOpenBooking} />
+      <EventSuggestions onOpenBooking={handleOpenBooking} />
       <VenueLayouts />
       
       {/* Why Choose Us Section */}
@@ -705,7 +961,7 @@ export default function App() {
         </div>
       </section>
 
-      <Pricing />
+      <Pricing onSelectPackage={handleSelectPackage} />
 
       {/* Client Types Section */}
       <section className="py-24 border-y border-white/5">
