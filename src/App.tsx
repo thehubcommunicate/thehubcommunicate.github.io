@@ -242,6 +242,13 @@ const Navbar = ({ onOpenBooking }: { onOpenBooking: () => void }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${isScrolled ? "glass py-4" : "bg-transparent py-6"}`}>
       <div className="container mx-auto px-6 flex justify-between items-center">
@@ -250,11 +257,11 @@ const Navbar = ({ onOpenBooking }: { onOpenBooking: () => void }) => {
           <span className="text-2xl font-extrabold tracking-tighter uppercase">The Hub</span>
         </Link>
         <div className="hidden lg:flex items-center gap-6 font-medium text-[11px] uppercase tracking-widest">
-          <a href="#about" className="hover:text-hub-blue transition-colors">Giới thiệu</a>
-          <a href="#services" className="hover:text-hub-blue transition-colors">Dịch vụ</a>
-          <a href="#suggestions" className="hover:text-hub-blue transition-colors">Gợi ý sự kiện</a>
-          <a href="#pricing" className="hover:text-hub-blue transition-colors">Bảng giá</a>
-          <a href="#terms" className="hover:text-hub-blue transition-colors">Điều khoản</a>
+          <button onClick={() => scrollToSection("about")} className="hover:text-hub-blue transition-colors">Giới thiệu</button>
+          <button onClick={() => scrollToSection("services")} className="hover:text-hub-blue transition-colors">Dịch vụ</button>
+          <button onClick={() => scrollToSection("suggestions")} className="hover:text-hub-blue transition-colors">Gợi ý sự kiện</button>
+          <button onClick={() => scrollToSection("pricing")} className="hover:text-hub-blue transition-colors">Bảng giá</button>
+          <button onClick={() => scrollToSection("terms")} className="hover:text-hub-blue transition-colors">Điều khoản</button>
           <button 
             onClick={onOpenBooking}
             className="px-6 py-2 bg-white text-hub-black rounded-full font-bold hover:bg-hub-blue hover:text-white transition-all duration-300"

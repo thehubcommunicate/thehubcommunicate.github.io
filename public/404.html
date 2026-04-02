@@ -2,19 +2,13 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>THE HUB – Redirecting...</title>
+    <title>THE HUB</title>
     <script type="text/javascript">
-      // For HashRouter, any non-root path should redirect to the root with the path as a hash
-      // This is a simple version that just goes back to the home page
-      var segmentCount = 1;
+      // For HashRouter on root domain, redirect any path to the hash version
       var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + segmentCount).join('/') + '/?#/' +
-        l.pathname.slice(1).split('/').slice(segmentCount).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+      if (l.pathname !== '/') {
+        l.replace(l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + '/#' + l.pathname);
+      }
     </script>
   </head>
   <body>
