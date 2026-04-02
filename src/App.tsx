@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "motion/react";
+import { HashRouter, Routes, Route, Link, useNavigate } from "react-router-dom";
 import { 
   Users, 
   Lightbulb, 
@@ -35,11 +36,6 @@ import {
   X
 } from "lucide-react";
 import { useState, useEffect } from "react";
-
-// --- Constants ---
-const BASE_URL = "https://thehubcommunicate.github.io";
-
-const getLink = (path: string) => `${BASE_URL}/${path}`;
 
 // --- Components ---
 
@@ -249,10 +245,10 @@ const Navbar = ({ onOpenBooking }: { onOpenBooking: () => void }) => {
   return (
     <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${isScrolled ? "glass py-4" : "bg-transparent py-6"}`}>
       <div className="container mx-auto px-6 flex justify-between items-center">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.href = getLink("")}>
+        <Link to="/" className="flex items-center gap-2 cursor-pointer">
           <div className="w-10 h-10 bg-gradient-to-br from-hub-purple to-hub-blue rounded-lg flex items-center justify-center font-bold text-xl">H</div>
           <span className="text-2xl font-extrabold tracking-tighter uppercase">The Hub</span>
-        </div>
+        </Link>
         <div className="hidden lg:flex items-center gap-6 font-medium text-[11px] uppercase tracking-widest">
           <a href="#about" className="hover:text-hub-blue transition-colors">Giới thiệu</a>
           <a href="#services" className="hover:text-hub-blue transition-colors">Dịch vụ</a>
@@ -377,6 +373,7 @@ const QuickHighlights = () => {
 };
 
 const About = () => {
+  const navigate = useNavigate();
   return (
     <section id="about" className="py-24 relative overflow-hidden">
       <div className="container mx-auto px-6">
@@ -416,7 +413,7 @@ const About = () => {
             </div>
 
             <button 
-              onClick={() => window.location.href = getLink("vechungtoi")}
+              onClick={() => navigate("/vechungtoi")}
               className="flex items-center gap-2 text-hub-blue font-bold group"
             >
               Tìm hiểu thêm <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
@@ -628,6 +625,7 @@ const BookingProcess = () => {
 };
 
 const Blog = () => {
+  const navigate = useNavigate();
   const posts = [
     { title: "Top 5 không gian workshop tại Quận 1", date: "15/03/2026", img: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=2070" },
     { title: "Kinh nghiệm tổ chức networking cho Startup", date: "10/03/2026", img: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=2069" },
@@ -643,7 +641,7 @@ const Blog = () => {
             <p className="text-gray-400">Cập nhật những hoạt động mới nhất từ cộng đồng The Hub.</p>
           </div>
           <button 
-            onClick={() => window.location.href = getLink("blog")}
+            onClick={() => navigate("/blog")}
             className="text-hub-blue font-bold flex items-center gap-2 hover:translate-x-2 transition-transform"
           >
             Xem tất cả <ArrowRight className="w-5 h-5" />
@@ -651,7 +649,7 @@ const Blog = () => {
         </div>
         <div className="grid md:grid-cols-3 gap-8">
           {posts.map((p, i) => (
-            <div key={i} className="glass rounded-3xl overflow-hidden border-white/5 group cursor-pointer" onClick={() => window.location.href = getLink(`blog/${i}`)}>
+            <div key={i} className="glass rounded-3xl overflow-hidden border-white/5 group cursor-pointer" onClick={() => navigate(`/blog/${i}`)}>
               <div className="aspect-video overflow-hidden">
                 <img src={p.img} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
               </div>
@@ -779,6 +777,7 @@ const EventSuggestions = ({ onOpenBooking }: { onOpenBooking: (service: string) 
 };
 
 const TermsOfService = () => {
+  const navigate = useNavigate();
   return (
     <section id="terms" className="py-24">
       <div className="container mx-auto px-6">
@@ -816,7 +815,7 @@ const TermsOfService = () => {
           </div>
           <div className="mt-10 pt-10 border-t border-white/5 text-center">
             <button 
-              onClick={() => window.location.href = getLink("dieukhoanchitiet")}
+              onClick={() => navigate("/dieukhoanchitiet")}
               className="text-hub-purple font-bold flex items-center gap-2 mx-auto hover:translate-x-2 transition-transform"
             >
               Xem toàn bộ điều khoản <ArrowRight className="w-4 h-4" />
@@ -829,12 +828,13 @@ const TermsOfService = () => {
 };
 
 const Footer = () => {
+  const navigate = useNavigate();
   return (
     <footer className="pt-24 pb-12 bg-hub-black border-t border-white/5">
       <div className="container mx-auto px-6">
         <div className="grid md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2 mb-6 cursor-pointer" onClick={() => window.location.href = getLink("")}>
+            <div className="flex items-center gap-2 mb-6 cursor-pointer" onClick={() => navigate("/")}>
               <div className="w-10 h-10 bg-gradient-to-br from-hub-purple to-hub-blue rounded-lg flex items-center justify-center font-bold text-xl">H</div>
               <span className="text-2xl font-extrabold tracking-tighter uppercase">The Hub</span>
             </div>
@@ -860,9 +860,9 @@ const Footer = () => {
           <div>
             <h4 className="font-bold mb-6 uppercase tracking-widest text-xs text-gray-400">Chính sách</h4>
             <ul className="space-y-4 text-sm text-gray-500">
-              <li><button onClick={() => window.location.href = getLink("chinhsachdichvu")} className="hover:text-white transition-colors">Chính sách dịch vụ</button></li>
-              <li><button onClick={() => window.location.href = getLink("chinhsachhuylich")} className="hover:text-white transition-colors">Chính sách hủy lịch</button></li>
-              <li><button onClick={() => window.location.href = getLink("baomatthongtin")} className="hover:text-white transition-colors">Bảo mật thông tin</button></li>
+              <li><button onClick={() => navigate("/chinhsachdichvu")} className="hover:text-white transition-colors">Chính sách dịch vụ</button></li>
+              <li><button onClick={() => navigate("/chinhsachhuylich")} className="hover:text-white transition-colors">Chính sách hủy lịch</button></li>
+              <li><button onClick={() => navigate("/baomatthongtin")} className="hover:text-white transition-colors">Bảo mật thông tin</button></li>
             </ul>
           </div>
         </div>
@@ -876,7 +876,7 @@ const Footer = () => {
 
 // --- Main App ---
 
-export default function App() {
+const Home = () => {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingInitialStep, setBookingInitialStep] = useState(1);
   const [bookingInitialData, setBookingInitialData] = useState({});
@@ -1008,5 +1008,60 @@ export default function App() {
       <BookingForm />
       <Footer />
     </div>
+  );
+};
+
+const NotFound = () => {
+  return (
+    <div className="min-h-screen bg-hub-black flex items-center justify-center p-6 text-center overflow-hidden">
+      <div className="relative">
+        {/* Background Glow */}
+        <div className="absolute -inset-20 bg-hub-purple/20 blur-[100px] rounded-full animate-pulse" />
+        
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative glass p-12 md:p-20 rounded-[3rem] border-white/10 max-w-2xl backdrop-blur-3xl"
+        >
+          <motion.div
+            animate={{ 
+              rotate: [0, 10, -10, 0],
+              y: [0, -10, 0]
+            }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="w-32 h-32 bg-gradient-to-br from-hub-purple to-hub-blue rounded-[2rem] mx-auto mb-10 flex items-center justify-center text-5xl font-black shadow-2xl shadow-hub-purple/40"
+          >
+            404
+          </motion.div>
+          
+          <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter uppercase leading-none">
+            BẠN ĐI LẠC <br /> <span className="text-hub-purple">À?</span>
+          </h1>
+          
+          <p className="text-gray-400 text-lg mb-12 leading-relaxed max-w-md mx-auto">
+            Có vẻ như không gian này chưa được khai phá hoặc đã bị dịch chuyển sang một chiều không gian khác trong vũ trụ The Hub.
+          </p>
+          
+          <Link 
+            to="/" 
+            className="inline-flex items-center gap-3 px-12 py-6 bg-hub-purple hover:bg-hub-purple/80 text-white rounded-full font-bold text-lg transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-hub-purple/30 group"
+          >
+            VỀ TRANG CHỦ Á 
+            <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+          </Link>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default function App() {
+  return (
+    <HashRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </HashRouter>
   );
 }
