@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-hub-black: #050505;
+  --color-hub-purple: #9d00ff;
+  --color-hub-blue: #00d2ff;
+  --color-hub-magenta: #ff0080;
+  --color-hub-gold: #ffcc00;
+}
+
+@layer base {
+  body {
+    @apply bg-hub-black text-white font-sans antialiased selection:bg-hub-purple selection:text-white;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+  
+  .glow-purple {
+    box-shadow: 0 0 30px -5px rgba(157, 0, 255, 0.5);
+  }
+  
+  .glow-blue {
+    box-shadow: 0 0 30px -5px rgba(0, 210, 255, 0.5);
+  }
+
+  .text-gradient-purple-blue {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-hub-purple via-hub-blue to-hub-magenta;
+  }
+
+  .bg-mesh {
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(157, 0, 255, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(0, 210, 255, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(255, 0, 128, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(255, 204, 0, 0.05) 0px, transparent 50%);
+  }
+
+  @keyframes spotlight {
+    0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+    50% { transform: translate(-50%, -50%) rotate(20deg); }
+  }
+
+  .spotlight {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 100vw;
+    height: 100vh;
+    background: conic-gradient(from 180deg at 50% 0%, transparent 45%, rgba(157, 0, 255, 0.1) 50%, transparent 55%);
+    filter: blur(40px);
+    transform-origin: top center;
+    animation: spotlight 10s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+}
