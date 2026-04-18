@@ -4,32 +4,54 @@ import { useNavigate } from "react-router-dom";
 import { Zap, Users, Lightbulb, Mic2, ArrowRight, ChevronRight, Globe, Layout, Cpu, Eye, Camera, Music, Coffee, Monitor, CheckCircle2, ShoppingCart, Loader2, Check } from "lucide-react";
 import PageLayout from "../components/PageLayout";
 import { useAuth } from "../components/AuthProvider";
-import { placeServiceOrder } from "../lib/firebase";
+import { placeServiceOrder, db } from "../lib/firebase";
+import { doc, updateDoc, increment } from "firebase/firestore";
+import { Wallet, CreditCard, QrCode as QrIcon, Copy } from "lucide-react";
 
 const Services = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [ordering, setOrdering] = useState<any | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
   const handlePlaceOrder = async () => {
-    if (!user || !ordering) return;
+    if (!user || !ordering || !paymentMethod) return;
+
+    // Price parsing
+    const priceStr = ordering.price.replace("Từ ", "").replace("tr", "").replace(/,/g, "").replace("đ", "");
+    const price = priceStr.includes("tr") ? parseFloat(priceStr.replace("tr", "")) * 1000000 : parseInt(priceStr);
+
+    if (paymentMethod === "hub-coin" && (profile?.hubCoins || 0) < price) {
+      alert("Bạn không đủ Hub-Coin để thực hiện giao dịch này!");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Parse price from string e.g., "Từ 2.5tr" -> 2500000
-      const priceStr = ordering.price.replace("Từ ", "").replace("tr", "");
-      const price = parseFloat(priceStr) * 1000000;
-      
       await placeServiceOrder(user.uid, {
-        id: ordering.title.toLowerCase().replace(/ /g, "-"),
-        name: ordering.title,
-        price
+        serviceId: ordering.id || ordering.title.toLowerCase().replace(/ /g, "-"),
+        serviceName: ordering.title,
+        price,
+        paymentMethod,
+        status: paymentMethod === "hub-coin" ? "paid" : "pending"
       });
+      
+      if (paymentMethod === "hub-coin") {
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, {
+          hubCoins: increment(-price)
+        });
+      }
+
       setOrderSuccess(true);
       setTimeout(() => {
         setOrderSuccess(false);
         setOrdering(null);
+        setShowPayment(false);
+        setPaymentMethod(null);
       }, 3000);
     } catch (error) {
       console.error("Order failed", error);
@@ -262,46 +284,111 @@ const Services = () => {
               >
                 {!orderSuccess ? (
                   <>
-                    <h3 className="text-3xl font-bold mb-2 uppercase tracking-tight">Xác nhận đặt hàng</h3>
-                    <p className="text-gray-400 mb-8 font-medium italic text-sm">Gói dịch vụ cao cấp tại The Hub</p>
+                    <h3 className="text-3xl font-bold mb-2 uppercase tracking-tight">
+                      {!showPayment ? "Xác nhận đặt hàng" : "Thanh toán Một Chạm"}
+                    </h3>
+                    <p className="text-gray-400 mb-8 font-medium italic text-sm">
+                      {!showPayment ? "Gói dịch vụ cao cấp tại The Hub" : "Quét mã QR để hoàn tất trong 3 giây"}
+                    </p>
                     
-                    <div className="glass p-6 rounded-2xl border-white/5 mb-8">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Dịch vụ</span>
-                        <span className="text-lg font-bold">{ordering.title}</span>
-                      </div>
-                      <div className="flex justify-between items-center pt-4 border-t border-white/5">
-                        <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Giá tạm tính</span>
-                        <span className="text-2xl font-black text-hub-blue">{ordering.price}</span>
-                      </div>
-                    </div>
+                    {!showPayment ? (
+                      <div className="space-y-8">
+                        <div className="glass p-6 rounded-2xl border-white/5">
+                          <div className="flex justify-between items-center mb-4">
+                            <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Dịch vụ</span>
+                            <span className="text-lg font-bold">{ordering.title}</span>
+                          </div>
+                          <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                            <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Giá niêm yết</span>
+                            <span className="text-2xl font-black text-hub-blue">{ordering.price}</span>
+                          </div>
+                        </div>
 
-                    {!user ? (
-                      <div className="text-center py-4">
-                        <p className="text-red-400 text-xs font-bold uppercase tracking-widest mb-4">Vui lòng đăng nhập để đặt hàng</p>
-                        <button 
-                          onClick={() => { setOrdering(null); window.scrollTo(0, 0); }}
-                          className="w-full py-4 bg-white text-hub-black rounded-full font-bold uppercase tracking-widest text-xs"
-                        >
-                          Quay lại đăng nhập
-                        </button>
+                        {!user ? (
+                          <div className="text-center py-4">
+                            <p className="text-red-400 text-xs font-bold uppercase tracking-widest mb-4">Vui lòng đăng nhập để đặt hàng</p>
+                            <button 
+                              onClick={() => { setOrdering(null); window.scrollTo(0, 0); }}
+                              className="w-full py-4 bg-white text-hub-black rounded-full font-bold uppercase tracking-widest text-xs"
+                            >
+                              Quay lại đăng nhập
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-4">
+                            <button 
+                              onClick={() => setOrdering(null)}
+                              className="flex-1 py-4 glass rounded-full font-bold uppercase tracking-widest text-[10px] hover:bg-white/10"
+                            >
+                              Hủy bỏ
+                            </button>
+                            <button 
+                              onClick={() => setShowPayment(true)}
+                              className="flex-[2] py-4 bg-hub-purple rounded-full font-bold uppercase tracking-widest text-[10px] hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-lg shadow-hub-purple/30"
+                            >
+                               Tiếp tục thanh toán <ArrowRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="flex gap-4">
-                        <button 
-                          disabled={isSubmitting}
-                          onClick={() => setOrdering(null)}
-                          className="flex-1 py-4 glass rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white/10"
-                        >
-                          Hủy bỏ
-                        </button>
-                        <button 
-                          disabled={isSubmitting}
-                          onClick={handlePlaceOrder}
-                          className="flex-[2] py-4 bg-hub-purple rounded-full font-bold uppercase tracking-widest text-xs hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-lg shadow-hub-purple/30"
-                        >
-                          {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Xác nhận gửi đơn"}
-                        </button>
+                      <div className="space-y-8">
+                        <div className="grid grid-cols-2 gap-4">
+                          {[
+                            { id: "momo", name: "Ví Momo", icon: "https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" },
+                            { id: "vnpay", name: "VNPay QR", icon: "https://vinadesign.vn/uploads/images/2023/05/vnpay-logo-vinadesign-25-12-57-55.jpg" },
+                            { id: "vietqr", name: "VietQR", icon: "https://vietqr.net/img/vietqr-logo-02.png" },
+                            { id: "hub-coin", name: "Hub-Coin", icon: null },
+                          ].map(pay => (
+                            <button 
+                              key={pay.id}
+                              onClick={() => setPaymentMethod(pay.id)}
+                              className={`p-4 rounded-2xl glass border flex flex-col items-center gap-2 transition-all ${paymentMethod === pay.id ? "border-hub-blue bg-hub-blue/10 scale-105" : "border-white/5 opacity-60 hover:opacity-100"}`}
+                            >
+                               {pay.icon ? <img src={pay.icon} className="h-6 object-contain" referrerPolicy="no-referrer" /> : <Wallet className="w-6 h-6 text-hub-magenta" />}
+                               <span className="text-[8px] font-black uppercase tracking-widest">{pay.name}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {paymentMethod && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 10 }} 
+                            animate={{ opacity: 1, y: 0 }}
+                            className="glass p-6 rounded-2xl border-white/10 text-center"
+                          >
+                            {paymentMethod === "hub-coin" ? (
+                              <div className="py-4">
+                                <div className="text-hub-magenta font-black text-xl mb-1">{ordering.price} HH</div>
+                                <p className="text-[8px] text-gray-500 uppercase font-black">Số dư HH của bạn: {profile?.hubCoins || 0}</p>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center">
+                                <div className="w-40 h-40 bg-white p-2 rounded-xl mb-4">
+                                   <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_${ordering.id}`} className="w-full h-full" referrerPolicy="no-referrer" />
+                                </div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Vui lòng quét mã và chờ xác nhận</p>
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+
+                        <div className="flex gap-4">
+                          <button 
+                            disabled={isSubmitting}
+                            onClick={() => setShowPayment(false)}
+                            className="flex-1 py-4 glass rounded-full font-bold uppercase tracking-widest text-[10px]"
+                          >
+                            Trở lại
+                          </button>
+                          <button 
+                            disabled={isSubmitting || !paymentMethod}
+                            onClick={handlePlaceOrder}
+                            className="flex-[2] py-4 bg-hub-blue rounded-full font-bold uppercase tracking-widest text-[10px] hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-lg shadow-hub-blue/30 disabled:opacity-50"
+                          >
+                            {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Xác nhận & Giữ chỗ"}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </>

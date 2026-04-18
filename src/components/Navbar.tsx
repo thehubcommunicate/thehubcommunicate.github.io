@@ -24,8 +24,12 @@ const Navbar = () => {
     } else {
       try {
         await signInWithGoogle();
-      } catch (error) {
-        console.error("Login failed", error);
+      } catch (error: any) {
+        if (error.code === 'auth/popup-blocked') {
+          alert("Trình duyệt đã chặn cửa sổ đăng nhập. Vui lòng nhấn vào nút 'Mở trong tab mới' phía trên cùng bên phải để đăng nhập ổn định hơn.");
+        } else {
+          console.error("Login failed", error);
+        }
       }
     }
   };

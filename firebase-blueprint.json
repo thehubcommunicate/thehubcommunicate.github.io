@@ -84,6 +84,43 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "serviceId", "serviceName"]
+    },
+    "Event": {
+      "title": "Hub Event",
+      "description": "An event organized at The Hub.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "location": { "type": "string" },
+        "img": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "countdownDate": { "type": "string" },
+        "interestedCount": { "type": "number" },
+        "attendeeCount": { "type": "number" },
+        "price": { "type": "string" },
+        "isHot": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "date", "time", "location"]
+    },
+    "BlogPost": {
+      "title": "Blog Post",
+      "description": "A magazine article or knowledge post.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "relatedEventId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "authorId"]
     }
   },
   "firestore": {
@@ -106,6 +143,14 @@
     "/serviceOrders/{orderId}": {
       "schema": "ServiceOrder",
       "description": "Stores service package orders."
+    },
+    "/events/{eventId}": {
+      "schema": "Event",
+      "description": "Stores events at The Hub."
+    },
+    "/blogPosts/{postId}": {
+      "schema": "BlogPost",
+      "description": "Stores magazine articles and knowledge posts."
     }
   }
 }

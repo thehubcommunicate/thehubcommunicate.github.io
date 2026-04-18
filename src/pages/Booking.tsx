@@ -5,8 +5,9 @@ import { Zap, Users, Calendar, ArrowRight, ChevronRight, CheckCircle2, CreditCar
 import PageLayout from "../components/PageLayout";
 import { suggestEventLayout } from "../lib/gemini";
 import { createBooking, db } from "../lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { useAuth } from "../components/AuthProvider";
+import { Copy, QrCode as QrIconCode } from "lucide-react";
 
 const Booking = () => {
   const [step, setStep] = useState(1);
@@ -16,7 +17,9 @@ const Booking = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [qrPass, setQrPass] = useState("");
-  const { user } = useAuth();
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+  const [showQRStatus, setShowQRStatus] = useState(false);
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
 
   const [bookingData, setBookingData] = useState({
@@ -63,11 +66,38 @@ const Booking = () => {
     setBookingData(prev => ({ ...prev, totalAmount: base + addOnsTotal }));
   }, [bookingData.roomId, bookingData.addOns]);
 
+  const isHighTier = bookingData.roomName.includes("Grand Hub") || bookingData.roomId === "hall-1";
+  const depositAmount = isHighTier ? bookingData.totalAmount * 0.5 : bookingData.totalAmount;
+
   const handleCreateBooking = async () => {
     if (!user) return alert("Vui lòng đăng nhập!");
+    if (!paymentMethod) return alert("Vui lòng chọn phương thức thanh toán!");
+    
+    // Hub-Coin Check
+    if (paymentMethod === "hub-coin" && (profile?.hubCoins || 0) < bookingData.totalAmount) {
+      alert("Bạn không đủ Hub-Coin để thực hiện giao dịch này!");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const res = await createBooking(user.uid, bookingData);
+      const res = await createBooking(user.uid, {
+        ...bookingData,
+        paymentStatus: paymentMethod === "hub-coin" ? "paid" : "pending_verification",
+        paymentMethod,
+        depositRequired: depositAmount,
+        bookingType: isHighTier ? "high-tier" : "standard",
+        totalAmount: bookingData.totalAmount
+      });
+
+      // If Hub-Coin, deduct balance
+      if (paymentMethod === "hub-coin") {
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, {
+          hubCoins: increment(-bookingData.totalAmount)
+        });
+      }
+
       const snap = await getDoc(res);
       const data = snap.data();
       setBookingId(res.id);
@@ -75,6 +105,7 @@ const Booking = () => {
       setStep(5); // Success step
     } catch (error) {
       console.error("Booking error", error);
+      alert("Đã xảy ra lỗi khi tạo đơn đặt chỗ. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }
@@ -359,51 +390,167 @@ const Booking = () => {
                 className="space-y-10"
               >
                 <div className="text-center mb-8">
-                  <h2 className="text-3xl font-black uppercase italic tracking-widest mb-2">Thanh toán Pass-point</h2>
-                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Xác nhận thanh toán để nhận ngay Hub-Pass quyền năng.</p>
+                  <h2 className="text-3xl font-black uppercase italic tracking-widest mb-2">Quy trình thanh toán khép kín</h2>
+                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Hệ thống "Một chạm" - Nhanh chóng, An toàn, Tiện lợi.</p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-8">
-                  <div className="glass p-8 rounded-[2.5rem] border-white/5 space-y-6">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-hub-blue border-b border-white/5 pb-4">Tóm lược đặt chỗ</h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-500">Phòng:</span>
-                        <span className="font-bold">{bookingData.roomName}</span>
+                <div className="grid lg:grid-cols-2 gap-12">
+                  <div className="space-y-8">
+                    <div className="glass p-8 rounded-[2.5rem] border-white/5 space-y-6">
+                      <h3 className="text-sm font-black uppercase tracking-widest text-hub-blue border-b border-white/5 pb-4">Tóm lược đấu trường</h3>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-gray-500">Mô hình:</span>
+                          <span className="font-bold">{bookingData.roomName}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-gray-500">Thời khắc:</span>
+                          <span className="font-bold">{bookingData.date} | {bookingData.time}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs text-hub-magenta">
+                          <span className="font-bold">Loại gói:</span>
+                          <span className="font-black uppercase tracking-widest">{isHighTier ? "Gói Official (Sự kiện)" : "Gói Trial / Standard"}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-500">Thời gian:</span>
-                        <span className="font-bold">{bookingData.date} | {bookingData.time}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-500">Cấu hình:</span>
-                        <span className="font-bold">{bookingData.layout}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-500">Dịch vụ thêm:</span>
-                        <span className="font-bold">{bookingData.addOns.length} vật phẩm</span>
+                      
+                      <div className="pt-6 border-t border-white/5 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-gray-400">TỔNG CHI PHÍ:</span>
+                          <span className="text-xl font-black text-white">{bookingData.totalAmount.toLocaleString()}đ</span>
+                        </div>
+                        {isHighTier && (
+                          <div className="p-4 bg-hub-purple/10 rounded-2xl border border-hub-purple/30">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-[10px] font-black text-hub-purple uppercase tracking-widest italic">Cọc giữ chỗ (50%):</span>
+                              <span className="text-lg font-black text-hub-purple">{depositAmount.toLocaleString()}đ</span>
+                            </div>
+                            <p className="text-[8px] text-gray-500 leading-tight uppercase font-bold italic">* Bạn chỉ cần thanh toán tiền cọc để giữ chỗ chắc chắn. Phần còn lại thanh toán tại Hub.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="pt-6 border-t border-white/5 flex justify-between items-center">
-                      <span className="text-lg font-black uppercase tracking-widest">Tổng cộng:</span>
-                      <span className="text-2xl font-black text-hub-blue">{bookingData.totalAmount.toLocaleString()}đ</span>
+
+                    <div className="flex flex-col gap-4">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Phương thức thanh toán đa nền tảng</label>
+                       <div className="grid grid-cols-2 gap-4">
+                          {[
+                            { id: "momo", name: "Ví Momo", icon: "https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png", color: "hover:bg-[#a50064]/20" },
+                            { id: "zalopay", name: "ZaloPay", icon: "https://vanchuyenhangquangchau.vn/wp-content/uploads/2023/10/logo-zalopay.png", color: "hover:bg-blue-600/20" },
+                            { id: "vnpay", name: "VNPay QR", icon: "https://vinadesign.vn/uploads/images/2023/05/vnpay-logo-vinadesign-25-12-57-55.jpg", color: "hover:bg-red-500/20" },
+                            { id: "vietqr", name: "VietQR (Bank)", icon: "https://vietqr.net/img/vietqr-logo-02.png", color: "hover:bg-hub-blue/20" },
+                          ].map(pay => (
+                            <button 
+                              key={pay.id}
+                              onClick={() => setPaymentMethod(pay.id)}
+                              className={`p-4 rounded-3xl glass border transition-all flex flex-col items-center gap-3 relative overflow-hidden group ${paymentMethod === pay.id ? "border-hub-blue bg-hub-blue/10 scale-105" : "border-white/5 " + pay.color}`}
+                            >
+                               <img src={pay.icon} className="h-8 object-contain rounded-lg" referrerPolicy="no-referrer" />
+                               <span className="text-[9px] font-black uppercase tracking-widest">{pay.name}</span>
+                               {paymentMethod === pay.id && <div className="absolute top-2 right-2 w-2 h-2 bg-hub-blue rounded-full shadow-[0_0_10px_#38bdf8]" />}
+                            </button>
+                          ))}
+                          <button 
+                            onClick={() => setPaymentMethod("hub-coin")}
+                            className={`col-span-2 p-4 rounded-3xl glass border transition-all flex items-center justify-between px-8 relative overflow-hidden group ${paymentMethod === "hub-coin" ? "border-hub-magenta bg-hub-magenta/10 scale-105" : "border-white/5 hover:bg-hub-magenta/20"}`}
+                          >
+                             <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-hub-magenta/20 rounded-2xl flex items-center justify-center">
+                                  <Wallet className="w-6 h-6 text-hub-magenta" />
+                                </div>
+                                <div>
+                                   <div className="text-[10px] font-black uppercase tracking-widest text-white">Hub-Coin (HH)</div>
+                                   <div className="text-[8px] text-gray-500 uppercase tracking-widest">Sử dụng điểm tích lũy của bạn</div>
+                                </div>
+                             </div>
+                             <div className="text-right">
+                                <div className="text-sm font-black text-hub-magenta">{profile?.hubCoins || 0} HH</div>
+                                <div className="text-[7px] text-gray-500 uppercase font-black italic">Sẵn dùng</div>
+                             </div>
+                             {paymentMethod === "hub-coin" && <div className="absolute top-2 right-2 w-2 h-2 bg-hub-magenta rounded-full shadow-[0_0_10px_#d946ef]" />}
+                          </button>
+                       </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-4">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4 mb-2">Chọn phương thức</div>
-                    <button onClick={handleCreateBooking} className="w-full py-6 glass rounded-[2rem] border-white/5 flex flex-col items-center gap-2 hover:bg-hub-purple/20 hover:border-hub-purple/50 transition-all group">
-                       <CreditCard className="w-8 h-8 text-hub-purple group-hover:scale-110 transition-transform" />
-                       <span className="text-[10px] font-black uppercase tracking-widest">Thẻ quốc tế (Visa/Master)</span>
-                    </button>
-                    <button onClick={handleCreateBooking} className="w-full py-6 glass rounded-[2rem] border-white/5 flex flex-col items-center gap-2 hover:bg-hub-blue/20 hover:border-hub-blue/50 transition-all group">
-                       <QrIcon className="w-8 h-8 text-hub-blue group-hover:scale-110 transition-transform" />
-                       <span className="text-[10px] font-black uppercase tracking-widest">Ví điện tử (Momo / QR)</span>
-                    </button>
-                    <button onClick={handleCreateBooking} className="w-full py-6 glass rounded-[2rem] border-white/5 flex flex-col items-center gap-2 hover:bg-hub-magenta/20 hover:border-hub-magenta/50 transition-all group">
-                       <Wallet className="w-8 h-8 text-hub-magenta group-hover:scale-110 transition-transform" />
-                       <span className="text-[10px] font-black uppercase tracking-widest">Hub-Coin (HH)</span>
-                    </button>
+                  <div className="relative">
+                    <AnimatePresence mode="wait">
+                      {paymentMethod && paymentMethod !== "hub-coin" ? (
+                        <motion.div 
+                          key="qr-view"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          className="glass p-10 rounded-[3rem] border-white/10 text-center flex flex-col items-center justify-center sticky top-32"
+                        >
+                           <h4 className="text-lg font-black uppercase tracking-widest mb-2 italic">Quét mã trong 3 giây</h4>
+                           <p className="text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-8">Nội dung đã được điền tự động</p>
+                           
+                           <div className="relative group mb-8">
+                              <div className="absolute -inset-4 bg-hub-blue/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <div className="w-56 h-56 bg-white p-4 rounded-[2rem] relative z-10 shadow-2xl">
+                                 <img 
+                                   src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=PAYMENT_HUB_${bookingData.totalAmount}_${user?.uid.slice(0,5)}`} 
+                                   className="w-full h-full object-contain" 
+                                   referrerPolicy="no-referrer"
+                                 />
+                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center">
+                                    <img src="/favicon.ico" className="w-6 h-6" onError={(e) => (e.currentTarget.src = "https://ui-avatars.com/api/?name=H&background=7c3aed&color=fff")} />
+                                 </div>
+                              </div>
+                           </div>
+                           
+                           <div className="space-y-4 w-full max-w-xs">
+                              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest border-b border-white/5 pb-2">
+                                 <span className="text-gray-500">Người thụ hưởng:</span>
+                                 <span className="text-white">THE HUB ARENA CO-WORKING</span>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest border-b border-white/5 pb-2">
+                                 <span className="text-gray-500">Số tiền:</span>
+                                 <span className="text-hub-blue">{depositAmount.toLocaleString()}đ</span>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                                 <span className="text-gray-500">Nội dung:</span>
+                                 <div className="flex items-center gap-2">
+                                    <span className="text-white">HUB{user?.uid.slice(0,6).toUpperCase()}</span>
+                                    <button className="text-hub-blue"><Copy className="w-3 h-3" /></button>
+                                 </div>
+                              </div>
+                           </div>
+                        </motion.div>
+                      ) : paymentMethod === "hub-coin" ? (
+                        <motion.div 
+                          key="hub-coin-view"
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="glass p-12 rounded-[3.5rem] border-hub-magenta/20 bg-gradient-to-br from-hub-magenta/5 to-transparent flex flex-col items-center text-center justify-center h-full sticky top-32"
+                        >
+                           <div className="w-20 h-20 bg-hub-magenta/20 rounded-3xl flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(217,70,239,0.3)]">
+                              <Wallet className="w-10 h-10 text-hub-magenta" />
+                           </div>
+                           <h4 className="text-2xl font-black uppercase italic tracking-widest mb-4">Thanh toán Hub-Coin</h4>
+                           <div className="space-y-6 w-full max-w-xs mb-10">
+                              <div className="flex justify-between items-center text-xs border-b border-white/5 pb-3">
+                                 <span className="text-gray-500 uppercase font-black tracking-widest">Chi phí:</span>
+                                 <span className="text-xl font-black text-hub-magenta">{bookingData.totalAmount} HH</span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs border-b border-white/5 pb-3">
+                                 <span className="text-gray-500 uppercase font-black tracking-widest">Số dư sau GD:</span>
+                                 <span className="text-lg font-black text-gray-300">{(profile?.hubCoins || 0) - bookingData.totalAmount} HH</span>
+                              </div>
+                           </div>
+                           <p className="text-[9px] text-gray-500 leading-relaxed uppercase font-bold italic">
+                              "Sáng tạo là vàng. Mỗi đồng Hub-Coin bạn chi ra là minh chứng cho tinh thần nhiệt huyết tại cộng đồng The Hub."
+                           </p>
+                        </motion.div>
+                      ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-center space-y-6 opacity-30">
+                           <div className="w-24 h-24 rounded-[2rem] border-2 border-dashed border-gray-600 flex items-center justify-center">
+                              <QrIconCode className="w-10 h-10 text-gray-600" />
+                           </div>
+                           <p className="text-[10px] font-black uppercase tracking-widest max-w-[200px]">Vui lòng chọn phương thức để xem chi tiết giao dịch</p>
+                        </div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               </motion.div>
@@ -416,24 +563,54 @@ const Booking = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center py-10"
               >
-                <div className="w-24 h-24 bg-hub-blue rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(56,189,248,0.4)]">
+                <div className="w-24 h-24 bg-hub-blue rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(56,189,248,0.4)] relative">
                   <CheckCircle2 className="w-12 h-12 text-white" />
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-2 -right-2 bg-hub-magenta text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest"
+                  >
+                    Done
+                  </motion.div>
                 </div>
-                <h2 className="text-4xl font-black uppercase tracking-widest mb-4 italic">ĐẶT CHỖ THÀNH CÔNG!</h2>
-                <p className="text-gray-400 text-sm max-w-lg mx-auto mb-12">Chúc mừng Đấu sĩ! Chỗ ngồi của bạn đã được giữ và chuẩn bị sẵn sàng. Hãy xuất trình Hub-Pass sau đây khi đến cửa.</p>
+                <h2 className="text-4xl font-black uppercase tracking-widest mb-4 italic">XÁC NHẬN TỨC THÌ!</h2>
+                <p className="text-gray-400 text-sm max-w-lg mx-auto mb-8">Thưa Đấu sĩ, hệ thống đã ghi nhận thanh toán. Hóa đơn điện tử và mã Hub-Pass quyền năng đã được gửi tới tài khoản của bạn.</p>
                 
-                <div className="max-w-xs mx-auto glass p-8 rounded-[2.5rem] border-hub-blue/30 bg-hub-blue/5 mb-12">
-                   <div className="aspect-square glass rounded-2xl flex items-center justify-center mb-6 relative group overflow-hidden">
-                      <QrIcon className="w-32 h-32 text-white opacity-80" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-hub-blue/20 to-transparent"></div>
+                <div className="max-w-md mx-auto grid md:grid-cols-2 gap-6 mb-12">
+                   <div className="glass p-8 rounded-[2.5rem] border-hub-blue/30 bg-hub-blue/5">
+                      <div className="aspect-square glass rounded-2xl flex items-center justify-center mb-6 relative group overflow-hidden">
+                         <QrIconCode className="w-32 h-32 text-white opacity-80" />
+                         <div className="absolute inset-0 bg-gradient-to-t from-hub-blue/20 to-transparent"></div>
+                      </div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-hub-blue mb-2">HUB-PASS ID</div>
+                      <div className="text-xl font-black tracking-[0.2em]">{qrPass || "LOADING..."}</div>
                    </div>
-                   <div className="text-[10px] font-black uppercase tracking-widest text-hub-blue mb-2">HUB-PASS ID</div>
-                   <div className="text-xl font-black tracking-[0.2em]">{qrPass || "LOADING..."}</div>
+
+                   <div className="glass p-8 rounded-[2.5rem] border-white/5 flex flex-col justify-center text-left">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-6 border-b border-white/5 pb-2">Hóa đơn điện tử</h4>
+                      <div className="space-y-4 mb-8">
+                         <div>
+                            <div className="text-[8px] text-gray-500 uppercase font-black">Mã giao dịch</div>
+                            <div className="text-xs font-bold">#TRX-{bookingId?.slice(0,8).toUpperCase()}</div>
+                         </div>
+                         <div>
+                            <div className="text-[8px] text-gray-500 uppercase font-black">Trạng thái</div>
+                            <div className="text-xs font-bold text-green-500 uppercase">Đã xác thực</div>
+                         </div>
+                         <div>
+                            <div className="text-[8px] text-gray-500 uppercase font-black">Ngày xuất</div>
+                            <div className="text-xs font-bold">{new Date().toLocaleDateString()}</div>
+                         </div>
+                      </div>
+                      <button className="w-full py-3 glass rounded-xl border-white/10 text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/10">
+                         <CreditCard className="w-4 h-4" /> Tải Hóa Đơn
+                      </button>
+                   </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <button onClick={() => navigate("/dashboard")} className="px-10 py-4 glass rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all">Quản lý đặt chỗ</button>
-                  <button onClick={() => setStep(1)} className="px-10 py-4 bg-hub-blue rounded-full font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all">Tiếp tục đặt chỗ</button>
+                  <button onClick={() => navigate("/dashboard")} className="px-10 py-4 glass rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all">Về tổng hành dinh</button>
+                  <button onClick={() => setStep(1)} className="px-10 py-4 bg-hub-blue rounded-full font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all">Đặt chỗ mới</button>
                 </div>
               </motion.div>
             )}

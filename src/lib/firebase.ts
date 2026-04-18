@@ -36,8 +36,12 @@ export const signInWithGoogle = async () => {
     }
     
     return user;
-  } catch (error) {
-    console.error("Error signing in with Google:", error);
+  } catch (error: any) {
+    if (error.code === 'auth/popup-blocked') {
+      console.warn("Sign-in popup was blocked by the browser. This is common in iframe environments. Please try opening the app in a new tab.");
+    } else {
+      console.error("Error signing in with Google:", error);
+    }
     throw error;
   }
 };
@@ -131,9 +135,9 @@ export const createBooking = async (userId: string, bookingData: any) => {
   const qrPass = `HUB-PASS-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
   return addDoc(bookingsRef, {
     userId,
-    ...bookingData,
     status: 'pending',
     paymentStatus: 'unpaid',
+    ...bookingData,
     qrPass,
     createdAt: serverTimestamp()
   });
@@ -142,19 +146,58 @@ export const createBooking = async (userId: string, bookingData: any) => {
 export const subscribeToPublicBookings = (callback: (bookings: any[]) => void) => {
   const q = query(collection(db, 'bookings'), where('privacy', '==', 'public'), orderBy('createdAt', 'desc'), limit(10));
   return onSnapshot(q, (snapshot) => {
-    const bookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    callback(bookings);
+    callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   });
 };
+
 // Service Orders
-export const placeServiceOrder = async (userId: string, service: { id: string, name: string, price: number }) => {
+export const placeServiceOrder = async (userId: string, orderData: any) => {
   const ordersRef = collection(db, 'serviceOrders');
   return addDoc(ordersRef, {
     userId,
-    serviceId: service.id,
-    serviceName: service.name,
-    price: service.price,
     status: 'pending',
+    ...orderData,
     createdAt: serverTimestamp()
+  });
+};
+
+// Events
+export const subscribeToEvents = (callback: (events: any[]) => void) => {
+  const q = query(collection(db, 'events'), orderBy('date', 'asc'));
+  return onSnapshot(q, (snapshot) => {
+    callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  });
+};
+
+export const interactWithEvent = async (eventId: string, userId: string, type: 'interested' | 'join') => {
+  const eventRef = doc(db, 'events', eventId);
+  const field = type === 'interested' ? 'interestedCount' : 'attendeeCount';
+  return updateDoc(eventRef, {
+    [field]: increment(1)
+  });
+};
+
+// Blog
+export const subscribeToBlogPosts = (callback: (posts: any[]) => void) => {
+  const q = query(collection(db, 'blogPosts'), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snapshot) => {
+    callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  });
+};
+
+export const createBlogPost = async (userId: string, userName: string, postData: any) => {
+  const blogRef = collection(db, 'blogPosts');
+  const userRef = doc(db, 'users', userId);
+  
+  await addDoc(blogRef, {
+    ...postData,
+    authorId: userId,
+    authorName: userName,
+    createdAt: serverTimestamp()
+  });
+
+  // Reward Hub-Coin for UGC
+  return updateDoc(userRef, {
+    hubCoins: increment(50)
   });
 };
