@@ -1,11 +1,42 @@
-import React from "react";
-import { motion } from "motion/react";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
-import { Zap, Users, Lightbulb, Mic2, ArrowRight, ChevronRight, Globe, Layout, Cpu, Eye, Camera, Music, Coffee, Monitor, CheckCircle2 } from "lucide-react";
+import { Zap, Users, Lightbulb, Mic2, ArrowRight, ChevronRight, Globe, Layout, Cpu, Eye, Camera, Music, Coffee, Monitor, CheckCircle2, ShoppingCart, Loader2, Check } from "lucide-react";
 import PageLayout from "../components/PageLayout";
+import { useAuth } from "../components/AuthProvider";
+import { placeServiceOrder } from "../lib/firebase";
 
 const Services = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [ordering, setOrdering] = useState<any | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+
+  const handlePlaceOrder = async () => {
+    if (!user || !ordering) return;
+    setIsSubmitting(true);
+    try {
+      // Parse price from string e.g., "Từ 2.5tr" -> 2500000
+      const priceStr = ordering.price.replace("Từ ", "").replace("tr", "");
+      const price = parseFloat(priceStr) * 1000000;
+      
+      await placeServiceOrder(user.uid, {
+        id: ordering.title.toLowerCase().replace(/ /g, "-"),
+        name: ordering.title,
+        price
+      });
+      setOrderSuccess(true);
+      setTimeout(() => {
+        setOrderSuccess(false);
+        setOrdering(null);
+      }, 3000);
+    } catch (error) {
+      console.error("Order failed", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const areas = [
     { 
@@ -38,9 +69,49 @@ const Services = () => {
   ];
 
   const packages = [
-    { title: "Gói Sinh nhật", price: "Từ 2.5tr", features: ["Trang trí theo chủ đề", "Hệ thống âm thanh", "Góc check-in", "Dọn dẹp sau tiệc"], color: "hub-purple" },
-    { title: "Gói Ra mắt sản phẩm", price: "Từ 5tr", features: ["Màn hình LED lớn", "Hỗ trợ check-in khách", "MC chuyên nghiệp", "Khu vực Teabreak"], color: "hub-blue" },
-    { title: "Gói Live Music", price: "Từ 4tr", features: ["Hệ thống âm thanh chuẩn", "Ánh sáng nghệ thuật", "Hỗ trợ thu âm", "Quầy bar phục vụ"], color: "hub-magenta" },
+    { 
+      id: "basic-hub", 
+      title: "Gói Basic Hub", 
+      desc: "Dành cho cá nhân cần tập trung",
+      price: "150,000đ", 
+      features: ["1 Chỗ ngồi chuyên nghiệp", "Nước uống tự chọn", "WiFi High-speed", "Phòng Quiet Box"], 
+      bgClass: "bg-hub-blue",
+      textClass: "text-hub-blue",
+      borderClass: "border-hub-blue/20",
+      shadowClass: "shadow-hub-blue/20",
+      tag: "Cá nhân"
+    },
+    { 
+      id: "team-hub", 
+      title: "Gói Team Hub", 
+      desc: "Combo nhóm cho bài tập lớn",
+      price: "800,000đ", 
+      features: ["Phòng riêng 5-10 người", "Bảng trắng & Bút dạ", "Máy chiếu HD", "Ưu đãi 10% Teabreak"], 
+      bgClass: "bg-hub-purple",
+      textClass: "text-hub-purple",
+      borderClass: "border-hub-purple/20",
+      shadowClass: "shadow-hub-purple/20",
+      tag: "Nhóm (5-10 người)"
+    },
+    { 
+      id: "event-master", 
+      title: "Gói Event Master", 
+      desc: "Niềm tự hào của The Hub",
+      price: "5,000,000đ", 
+      features: ["Toàn bộ Hall sự kiện", "Trang trí theo chủ đề", "Hệ thống âm thanh/ánh sáng", "Dịch vụ Teabreak trọn gói"], 
+      bgClass: "bg-hub-magenta",
+      textClass: "text-hub-magenta",
+      borderClass: "border-hub-magenta/20",
+      shadowClass: "shadow-hub-magenta/20",
+      tag: "Sự kiện trọn gói"
+    },
+  ];
+
+  const comparison = [
+    { feature: "Sức chứa", basic: "1 người", team: "5-10 người", event: "50-100 người" },
+    { feature: "Tiện ích đi kèm", basic: "Cơ bản", team: "Đầy đủ", event: "Cao cấp/Tùy biến" },
+    { feature: "Hỗ trợ kỹ thuật", basic: "Tự phục vụ", team: "Theo yêu cầu", event: "2 kỹ thuật viên trực" },
+    { feature: "Trang trí", basic: "Không", team: "Cơ bản", event: "Theo yêu cầu riêng" },
   ];
 
   const equipment = [
@@ -108,36 +179,151 @@ const Services = () => {
         {/* Packages */}
         <section className="mb-32">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 uppercase tracking-tight">Gói Dịch Vụ Đặc Biệt</h2>
-            <p className="text-gray-400">Giải pháp trọn gói cho những sự kiện quan trọng của bạn.</p>
+            <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase tracking-tighter italic">Gói Dịch Vụ Đa Tầng</h2>
+            <p className="text-gray-400 max-w-xl mx-auto">Thấu hiểu nhu cầu của từng đối tượng, từ góc học tập cá nhân đến đấu trường sự kiện lớn chuyên nghiệp.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-20">
             {packages.map((p, i) => (
               <motion.div
                 key={i}
                 whileHover={{ y: -10 }}
-                className="glass p-10 rounded-[3rem] border-white/5 relative overflow-hidden group"
+                className="glass p-8 md:p-10 rounded-[3rem] border-white/5 relative overflow-hidden group flex flex-col"
               >
-                <div className={`absolute top-0 right-0 w-32 h-32 bg-${p.color}/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-${p.color}/20 transition-colors`} />
-                <h4 className="text-2xl font-bold mb-6">{p.title}</h4>
-                <div className="text-3xl font-black text-hub-blue mb-8">{p.price}</div>
-                <ul className="space-y-4 mb-10">
+                <div className={`absolute top-0 right-0 w-32 h-32 ${p.bgClass} opacity-10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:opacity-20 transition-all`} />
+                <div className="mb-6 flex justify-between items-start relative z-10">
+                   <div className={`px-4 py-1.5 glass rounded-full text-[8px] font-black uppercase tracking-widest ${p.textClass} ${p.borderClass} border`}>{p.tag}</div>
+                </div>
+                <h4 className="text-2xl font-black uppercase tracking-tight mb-2 italic">{p.title}</h4>
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-6">{p.desc}</p>
+                <div className="text-3xl font-black text-white mb-8 group-hover:text-hub-blue transition-colors">{p.price}</div>
+                <ul className="space-y-4 mb-10 flex-1 relative z-10">
                   {p.features.map((f, j) => (
-                    <li key={j} className="flex items-center gap-3 text-sm text-gray-400">
-                      <CheckCircle2 className="w-4 h-4 text-hub-purple" /> {f}
+                    <li key={j} className="flex items-center gap-3 text-[11px] text-gray-400 font-medium">
+                      <CheckCircle2 className={`w-4 h-4 ${p.textClass}`} /> {f}
                     </li>
                   ))}
                 </ul>
                 <button 
-                  onClick={() => navigate("/booking")}
-                  className="w-full py-4 glass rounded-full font-bold hover:bg-white/10 transition-all uppercase text-[10px] tracking-widest"
+                  onClick={() => setOrdering(p)}
+                  className={`w-full py-4 ${p.bgClass} text-white rounded-full font-black hover:scale-105 transition-all uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg ${p.shadowClass}`}
                 >
-                  Nhận báo giá combo
+                  <ShoppingCart className="w-4 h-4" /> Kích hoạt ngay
                 </button>
               </motion.div>
             ))}
           </div>
+
+          {/* Comparison Table */}
+          <div className="max-w-4xl mx-auto glass rounded-[3rem] border-white/5 overflow-hidden shadow-2xl">
+            <div className="p-8 md:p-12">
+              <h3 className="text-2xl font-black uppercase tracking-widest text-center mb-10">So sánh quyền lợi</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="py-6 text-[10px] uppercase tracking-widest text-gray-500">Đặc tính</th>
+                      <th className="py-6 text-[10px] uppercase tracking-widest text-hub-blue">Basic Hub</th>
+                      <th className="py-6 text-[10px] uppercase tracking-widest text-hub-purple">Team Hub</th>
+                      <th className="py-6 text-[10px] uppercase tracking-widest text-hub-magenta">Event Master</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparison.map((row, i) => (
+                      <tr key={i} className="border-b border-white/5 last:border-0 group hover:bg-white/[0.02] transition-colors">
+                        <td className="py-6 font-bold text-xs pr-4">{row.feature}</td>
+                        <td className="py-6 text-[11px] text-gray-400">{row.basic}</td>
+                        <td className="py-6 text-[11px] text-gray-400">{row.team}</td>
+                        <td className="py-6 text-[11px] text-gray-200 font-bold">{row.event}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </section>
+
+        {/* Order Modal */}
+        <AnimatePresence>
+          {ordering && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => !isSubmitting && setOrdering(null)}
+                className="absolute inset-0 bg-hub-black/80 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="relative w-full max-w-lg glass p-10 rounded-[3rem] border-white/10 shadow-2xl"
+              >
+                {!orderSuccess ? (
+                  <>
+                    <h3 className="text-3xl font-bold mb-2 uppercase tracking-tight">Xác nhận đặt hàng</h3>
+                    <p className="text-gray-400 mb-8 font-medium italic text-sm">Gói dịch vụ cao cấp tại The Hub</p>
+                    
+                    <div className="glass p-6 rounded-2xl border-white/5 mb-8">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Dịch vụ</span>
+                        <span className="text-lg font-bold">{ordering.title}</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                        <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Giá tạm tính</span>
+                        <span className="text-2xl font-black text-hub-blue">{ordering.price}</span>
+                      </div>
+                    </div>
+
+                    {!user ? (
+                      <div className="text-center py-4">
+                        <p className="text-red-400 text-xs font-bold uppercase tracking-widest mb-4">Vui lòng đăng nhập để đặt hàng</p>
+                        <button 
+                          onClick={() => { setOrdering(null); window.scrollTo(0, 0); }}
+                          className="w-full py-4 bg-white text-hub-black rounded-full font-bold uppercase tracking-widest text-xs"
+                        >
+                          Quay lại đăng nhập
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-4">
+                        <button 
+                          disabled={isSubmitting}
+                          onClick={() => setOrdering(null)}
+                          className="flex-1 py-4 glass rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white/10"
+                        >
+                          Hủy bỏ
+                        </button>
+                        <button 
+                          disabled={isSubmitting}
+                          onClick={handlePlaceOrder}
+                          className="flex-[2] py-4 bg-hub-purple rounded-full font-bold uppercase tracking-widest text-xs hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-lg shadow-hub-purple/30"
+                        >
+                          {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Xác nhận gửi đơn"}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-10">
+                    <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-8 border-4 border-green-500/30">
+                      <Check className="w-10 h-10 text-green-500" />
+                    </div>
+                    <h3 className="text-3xl font-bold mb-4 uppercase tracking-tight">Đặt hàng thành công!</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-8">Hub-Team sẽ liên hệ với bạn trong vòng 30 phút để xác nhận chi tiết và hỗ trợ setup.</p>
+                    <button 
+                      onClick={() => setOrdering(null)}
+                      className="px-12 py-4 glass rounded-full font-bold uppercase tracking-widest text-[10px]"
+                    >
+                      Đóng
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         {/* Equipment */}
         <section className="py-24 glass rounded-[4rem] border-white/5 px-12">

@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import AIAssistant from "./AIAssistant";
 
 const PageLayout = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
@@ -14,6 +15,7 @@ const PageLayout = ({ children }: { children: React.ReactNode }) => {
         {children}
       </div>
       <Footer />
+      <AIAssistant />
     </div>
   );
 };

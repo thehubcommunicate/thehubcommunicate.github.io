@@ -1,11 +1,98 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
-import { Zap, Users, Calendar, ArrowRight, ChevronRight, CheckCircle2, CreditCard, QrCode, Wallet, Layout, Palette, MessageSquare, User, Settings, Bell, History, Star, Heart, Share2, Globe, MapPin, Send, Filter, LogOut } from "lucide-react";
+import { Zap, Users, Calendar, ArrowRight, ChevronRight, CheckCircle2, CreditCard, QrCode, Wallet, Layout, Palette, MessageSquare, User, Settings, Bell, History, Star, Heart, Share2, Globe, MapPin, Send, Filter, LogOut, Loader2, Lock, ShoppingBag, ShoppingCart, Coffee } from "lucide-react";
 import PageLayout from "../components/PageLayout";
+import { useAuth } from "../components/AuthProvider";
+import { logout, db } from "../lib/firebase";
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, increment } from "firebase/firestore";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
+  const { user, profile, loading } = useAuth();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [redeemSuccess, setRedeemSuccess] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const handleRedeem = async (reward: any) => {
+    if (!user || !profile) return;
+    if ((profile?.hubCoins || 0) < reward.cost) {
+      alert("Bạn không đủ Hub-Coin để đổi phần thưởng này!");
+      return;
+    }
+
+    setIsRedeeming(true);
+    try {
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        hubCoins: increment(-reward.cost)
+      });
+      setRedeemSuccess(reward.title);
+      setTimeout(() => setRedeemSuccess(null), 3000);
+    } catch (error) {
+      console.error("Redemption failed", error);
+      alert("Đã có lỗi xảy ra. Vui lòng thử lại sau.");
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
+  const rewards = [
+    { title: "Cà phê Free", cost: 50, icon: <Coffee />, desc: "1 ly cafe bất kỳ tại quầy bar" },
+    { title: "Vị trí VIP", cost: 200, icon: <Star />, desc: "Chỗ ngồi ưu tiên tại workshop kế tiếp" },
+    { title: "Gói WiFi Pro", cost: 100, icon: <Zap />, desc: "Băng thông dành riêng cho streamer" },
+    { title: "Voucher 50%", cost: 500, icon: <CreditCard />, desc: "Giảm giá đặt phòng The Nest" },
+  ];
+
+  useEffect(() => {
+    if (user) {
+      const q = query(
+        collection(db, 'serviceOrders'), 
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      );
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
+
+  if (loading) {
+    return (
+      <PageLayout>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Loader2 className="w-12 h-12 text-hub-purple animate-spin" />
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (!user) {
+    return (
+      <PageLayout>
+        <div className="flex h-[60vh] flex-col items-center justify-center text-center px-6">
+          <div className="w-20 h-20 bg-hub-purple/20 rounded-full flex items-center justify-center mb-6">
+            <Lock className="w-10 h-10 text-hub-purple" />
+          </div>
+          <h2 className="text-3xl font-black uppercase tracking-widest mb-4">Bạn chưa đăng nhập</h2>
+          <p className="text-gray-500 max-w-md mx-auto mb-8">Vui lòng đăng nhập để xem thông tin cá nhân và quản lý lịch sử đặt chỗ của bạn.</p>
+          <button 
+            onClick={() => window.scrollTo(0, 0)}
+            className="px-10 py-4 bg-hub-purple rounded-full font-bold text-xs uppercase tracking-widest"
+          >
+            Quay lại trang chủ
+          </button>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   const activities = [
     { type: "Sự kiện", title: "Workshop Sáng Tạo Gen Z", date: "15/04/2026", status: "Sắp diễn ra", amount: "-500k" },
@@ -29,33 +116,46 @@ const Dashboard = () => {
             <div className="sticky top-32 space-y-8">
               <div className="glass p-8 rounded-[2.5rem] border-white/10 text-center">
                 <div className="relative inline-block mb-6">
-                  <img src="https://ui-avatars.com/api/?name=User&background=7c3aed&color=fff" className="w-24 h-24 rounded-3xl" />
+                  <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=7c3aed&color=fff`} className="w-24 h-24 rounded-3xl object-cover" />
                   <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-hub-blue rounded-full flex items-center justify-center border-4 border-hub-black hover:scale-110 transition-transform">
                     <Settings className="w-4 h-4 text-white" />
                   </button>
                 </div>
-                <h3 className="text-xl font-bold mb-1 uppercase tracking-widest">Minh Quân</h3>
-                <p className="text-xs text-hub-blue font-bold uppercase tracking-widest mb-6">Designer / Hub-ID: 12345</p>
+                <h3 className="text-xl font-bold mb-1 uppercase tracking-widest">{user.displayName}</h3>
+                <div className="flex flex-col items-center gap-2 mb-6">
+                  <span className="text-[10px] px-3 py-1 bg-hub-purple/20 text-hub-purple rounded-full font-bold uppercase tracking-widest border border-hub-purple/30">
+                    HUB-ID: #{user.uid.slice(0, 8).toUpperCase()}
+                  </span>
+                  <p className="text-[10px] text-hub-blue font-bold uppercase tracking-widest">{profile?.role || 'Huber'} / Creative Arena</p>
+                </div>
                 <div className="flex justify-between items-center pt-6 border-t border-white/5">
                   <div className="text-center">
-                    <div className="text-lg font-black text-white">12</div>
+                    <div className="text-lg font-black text-white">0</div>
                     <div className="text-[8px] text-gray-500 uppercase tracking-widest">Dự án</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-black text-hub-purple">4.9</div>
+                    <div className="text-lg font-black text-hub-purple">5.0</div>
                     <div className="text-[8px] text-gray-500 uppercase tracking-widest">Đánh giá</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-black text-hub-blue">500</div>
+                    <div className="text-lg font-black text-hub-blue">{profile?.hubCoins || 0}</div>
                     <div className="text-[8px] text-gray-500 uppercase tracking-widest">Hub-Coin</div>
+                    <button 
+                      onClick={() => setActiveTab("rewards")}
+                      className="text-[7px] text-hub-purple font-bold uppercase tracking-widest block mt-1 hover:underline cursor-pointer"
+                    >
+                      Đổi thưởng
+                    </button>
                   </div>
                 </div>
               </div>
 
               <div className="glass p-4 rounded-[2rem] border-white/5 space-y-2">
                 {[
-                  { id: "profile", icon: <User />, label: "Thông tin cá nhân" },
-                  { id: "history", icon: <History />, label: "Lịch sử hoạt động" },
+                  { id: "profile", icon: <User />, label: "Hồ sơ đấu sĩ" },
+                  { id: "orders", icon: <ShoppingBag />, label: "Vật phẩm đã mua" },
+                  { id: "rewards", icon: <Star />, label: "Kho phần thưởng" },
+                  { id: "history", icon: <History />, label: "Nhật ký truyền kỳ" },
                   { id: "wallet", icon: <Wallet />, label: "Ví Hub-Coin" },
                   { id: "notifications", icon: <Bell />, label: "Thông báo" },
                 ].map((item) => (
@@ -67,9 +167,12 @@ const Dashboard = () => {
                     <span className="w-5 h-5">{item.icon}</span> {item.label}
                   </button>
                 ))}
-                <button className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-red-500 hover:bg-red-500/10 transition-all font-bold text-xs uppercase tracking-widest mt-4">
-                  <LogOut className="w-5 h-5" /> Đăng xuất
-                </button>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-red-500 hover:bg-red-500/10 transition-all font-bold text-xs uppercase tracking-widest mt-4"
+                  >
+                    <LogOut className="w-5 h-5" /> Đăng xuất
+                  </button>
               </div>
             </div>
           </div>
@@ -90,11 +193,11 @@ const Dashboard = () => {
                     <div className="grid md:grid-cols-2 gap-8">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-4">Họ và tên</label>
-                        <input type="text" defaultValue="Nguyễn Minh Quân" className="w-full px-6 py-4 rounded-2xl glass border-white/5 focus:border-hub-blue outline-none transition-all" />
+                        <input type="text" value={user.displayName || ""} disabled className="w-full px-6 py-4 rounded-2xl glass border-white/5 focus:border-hub-blue outline-none transition-all opacity-60" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-4">Email</label>
-                        <input type="email" defaultValue="quan.nm@gmail.com" className="w-full px-6 py-4 rounded-2xl glass border-white/5 focus:border-hub-blue outline-none transition-all" />
+                        <input type="email" value={user.email || ""} disabled className="w-full px-6 py-4 rounded-2xl glass border-white/5 focus:border-hub-blue outline-none transition-all opacity-60" />
                       </div>
                       <div className="space-y-2 md:col-span-2">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-4">Tiểu sử ngắn</label>
@@ -115,6 +218,105 @@ const Dashboard = () => {
                 </motion.div>
               )}
 
+              {activeTab === "rewards" && (
+                <motion.div 
+                  key="rewards"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="space-y-6"
+                >
+                  <div className="flex justify-between items-end mb-8">
+                    <div>
+                      <h2 className="text-4xl font-black uppercase tracking-tighter text-gradient-cosmic">Chợ Đổi Thưởng</h2>
+                      <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Dùng Hub-Coin để đổi lấy đặc quyền</p>
+                    </div>
+                    <div className="glass px-6 py-3 rounded-2xl border-hub-purple/20 flex items-center gap-3">
+                      <Wallet className="w-5 h-5 text-hub-purple" />
+                      <span className="text-xl font-black">{profile?.hubCoins || 0} HH</span>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6 relative">
+                    {redeemSuccess && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="absolute inset-x-0 -top-12 flex justify-center z-50 pointer-events-none"
+                      >
+                        <div className="bg-green-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest shadow-lg">
+                          Chúc mừng! Bạn đã đổi thành công: {redeemSuccess}
+                        </div>
+                      </motion.div>
+                    )}
+                    {rewards.map((reward, i) => (
+                      <div key={i} className="glass p-6 rounded-[2rem] border-white/5 hover:border-hub-purple/30 transition-all group">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="w-12 h-12 rounded-2xl bg-hub-purple/10 flex items-center justify-center text-hub-purple group-hover:scale-110 transition-transform">
+                            {reward.icon}
+                          </div>
+                          <span className="text-lg font-black text-hub-blue">{reward.cost} HH</span>
+                        </div>
+                        <h4 className="font-bold text-white uppercase tracking-wider mb-2">{reward.title}</h4>
+                        <p className="text-xs text-gray-500 mb-6">{reward.desc}</p>
+                        <button 
+                          disabled={isRedeeming || (profile?.hubCoins || 0) < reward.cost}
+                          onClick={() => handleRedeem(reward)}
+                          className="w-full py-3 glass rounded-xl font-bold uppercase tracking-widest text-[9px] hover:bg-hub-purple transition-all disabled:opacity-50 disabled:hover:bg-transparent"
+                        >
+                          {isRedeeming ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Sở hữu ngay"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+              {activeTab === "orders" && (
+                <motion.div 
+                  key="orders"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
+                >
+                  <h2 className="text-3xl font-bold mb-8 uppercase tracking-tighter">Đơn dịch vụ của tôi</h2>
+                  {orders.length === 0 ? (
+                    <div className="glass p-12 rounded-[2.5rem] border-white/5 text-center">
+                      <p className="text-gray-500 uppercase tracking-widest text-xs font-bold">Bạn chưa có đơn đặt hàng nào.</p>
+                      <button 
+                        onClick={() => navigate("/space")}
+                        className="mt-6 text-hub-blue font-bold uppercase tracking-widest text-[10px] hover:underline"
+                      >
+                        Khám phá dịch vụ ngay
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders.map((order) => (
+                        <div key={order.id} className="glass p-8 rounded-[2rem] border-white/5 flex items-center justify-between">
+                          <div className="flex items-center gap-6">
+                            <div className="w-12 h-12 bg-hub-blue/10 rounded-2xl flex items-center justify-center text-hub-blue">
+                              <ShoppingCart className="w-6 h-6" />
+                            </div>
+                            <div>
+                               <h4 className="font-bold text-white uppercase tracking-wider">{order.serviceName}</h4>
+                               <p className="text-[10px] text-gray-500 uppercase tracking-widest">
+                                 Mã đơn: {order.id.slice(0, 8).toUpperCase()} | {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'Đang xử lý'}
+                               </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-black text-white">{order.price.toLocaleString()}đ</div>
+                            <div className="flex items-center justify-end gap-2">
+                               <div className={`w-2 h-2 rounded-full ${order.status === 'pending' ? 'bg-hub-gold' : 'bg-green-500'}`} />
+                               <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">{order.status === 'pending' ? 'Chờ xác nhận' : 'Đã xác nhận'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
               {activeTab === "history" && (
                 <motion.div 
                   key="history"
