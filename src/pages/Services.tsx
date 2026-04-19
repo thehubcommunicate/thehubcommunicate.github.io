@@ -8,17 +8,55 @@ import { placeServiceOrder, db } from "../lib/firebase";
 import { doc, updateDoc, increment } from "firebase/firestore";
 import { Wallet, CreditCard, QrCode as QrIcon, Copy } from "lucide-react";
 
+import { askHubAI } from "../lib/gemini";
+import { Sparkles, Search } from "lucide-react";
+
 const Services = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const [aiSearch, setAiSearch] = useState("");
+  const [isAiMatching, setIsAiMatching] = useState(false);
+  const [matchedServiceId, setMatchedServiceId] = useState<string | null>(null);
+
+  const handleAiMatch = async () => {
+    if (!aiSearch.trim()) return;
+    setIsAiMatching(true);
+    const result = await askHubAI(`Dựa trên nhu cầu: "${aiSearch}", hãy chọn DUY NHẤT một ID phòng phù hợp từ danh sách này: [the-nest, the-creative-hall, the-grand-hub]. Chỉ trả về duy nhất ID đó, không thêm bất cứ từ nào khác.`);
+    const cleanId = result.trim().toLowerCase();
+    if (['the-nest', 'the-creative-hall', 'the-grand-hub'].includes(cleanId)) {
+      setMatchedServiceId(cleanId);
+      const element = document.getElementById(cleanId);
+      if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    setIsAiMatching(false);
+  };
   const [ordering, setOrdering] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<"methods" | "card">("methods");
+  const [cardData, setCardData] = useState({
+     number: "",
+     name: "",
+     expiry: "",
+     cvv: ""
+  });
+  const [qrCodeData, setQrCodeData] = useState("");
 
   const handlePlaceOrder = async () => {
     if (!user || !ordering || !paymentMethod) return;
+
+    if (paymentMethod === "credit-card") {
+       if (cardData.number !== "4242 4242 4242 4242") {
+          return alert("Demo: Vui lòng sử dụng số thẻ 4242 4242 4242 4242 để trải nghiệm!");
+       }
+       setIsProcessing(true);
+       // Luxury simulation: wait 3 seconds
+       await new Promise(resolve => setTimeout(resolve, 3000));
+       setIsProcessing(false);
+    }
 
     // Price parsing
     const priceStr = ordering.price.replace("Từ ", "").replace("tr", "").replace(/,/g, "").replace("đ", "");
@@ -36,7 +74,7 @@ const Services = () => {
         serviceName: ordering.title,
         price,
         paymentMethod,
-        status: paymentMethod === "hub-coin" ? "paid" : "pending"
+        status: (paymentMethod === "hub-coin" || paymentMethod === "credit-card") ? "paid" : "pending"
       });
       
       if (paymentMethod === "hub-coin") {
@@ -46,6 +84,7 @@ const Services = () => {
         });
       }
 
+      setQrCodeData(`HUB-PASS-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
       setOrderSuccess(true);
       setTimeout(() => {
         setOrderSuccess(false);
@@ -146,23 +185,64 @@ const Services = () => {
   return (
     <PageLayout>
       <div className="container mx-auto px-6">
-        <div className="text-center mb-20">
-          <h1 className="text-5xl md:text-7xl font-black mb-6 text-gradient-cosmic uppercase tracking-tighter">Không gian & Dịch vụ</h1>
-          <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+        <div className="text-center mb-24 flex flex-col items-center">
+          <span className="text-hub-blue font-black uppercase tracking-[0.3em] text-[10px] mb-4 block animate-pulse flex items-center gap-2">
+            <Sparkles className="w-3 h-3" /> Kiểm soát bởi Hub-AI
+          </span>
+          <h1 className="text-5xl md:text-7xl font-black mb-6 text-gradient-cosmic uppercase tracking-tighter italic">
+            Không gian & Dịch vụ
+          </h1>
+          <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed mb-10">
             Hệ thống không gian đa năng, trang thiết bị hiện đại giúp sự kiện của bạn diễn ra suôn sẻ và ấn tượng nhất.
           </p>
+
+          {/* AI Helper Bar */}
+          <div className="glass p-4 rounded-[2.5rem] border-hub-blue/20 flex flex-col md:flex-row gap-4 w-full max-w-2xl shadow-2xl shadow-hub-blue/10">
+             <div className="flex-1 relative flex items-center px-6 bg-white/5 rounded-2xl">
+                <Search className="w-4 h-4 text-hub-blue mr-4 opacity-50" />
+                <input 
+                  type="text" 
+                  value={aiSearch}
+                  onChange={(e) => setAiSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAiMatch()}
+                  placeholder="Tôi muốn tổ chức Workshop 30 người, cần máy chiếu..."
+                  className="bg-transparent py-4 text-xs focus:outline-none flex-1 font-medium placeholder:text-gray-600"
+                />
+             </div>
+             <button 
+               onClick={handleAiMatch}
+               disabled={isAiMatching || !aiSearch.trim()}
+               className="px-10 py-4 bg-hub-blue text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all flex items-center justify-center gap-3 shadow-lg shadow-hub-blue/30 disabled:opacity-50"
+             >
+               {isAiMatching ? (
+                 <>
+                   <Loader2 className="w-4 h-4 animate-spin" /> Analyzing 
+                 </>
+               ) : (
+                 <>
+                   <Sparkles className="w-4 h-4" /> AI Tư vấn
+                 </>
+               )}
+             </button>
+          </div>
         </div>
 
         {/* Areas */}
         <div className="space-y-24 mb-32">
           {areas.map((area, i) => (
             <motion.div 
+              id={area.id}
               key={i}
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className={`flex flex-col lg:flex-row gap-16 items-center ${i % 2 !== 0 ? "lg:flex-row-reverse" : ""}`}
+              className={`flex flex-col lg:flex-row gap-16 items-center ${i % 2 !== 0 ? "lg:flex-row-reverse" : ""} relative ${matchedServiceId === area.id ? "ring-2 ring-hub-blue rounded-[4rem] p-8 bg-hub-blue/5 scale-[1.02]" : ""}`}
             >
+              {matchedServiceId === area.id && (
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-6 py-2 bg-hub-blue text-white rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl animate-bounce">
+                  <Sparkles className="w-4 h-4" /> AI Đề xuất cho bạn
+                </div>
+              )}
               <div className="lg:w-1/2 relative group">
                 <div className="aspect-video rounded-[3rem] overflow-hidden glass p-2 border-white/10">
                   <img src={area.img} className="w-full h-full object-cover rounded-[2.5rem] group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
@@ -284,11 +364,11 @@ const Services = () => {
               >
                 {!orderSuccess ? (
                   <>
-                    <h3 className="text-3xl font-bold mb-2 uppercase tracking-tight">
-                      {!showPayment ? "Xác nhận đặt hàng" : "Thanh toán Một Chạm"}
+                    <h3 className="text-3xl font-bold mb-2 uppercase tracking-tight italic">
+                      {!showPayment ? "Xác nhận ghi danh" : (paymentStep === "card" ? "Bảo mật Quốc tế" : "Thanh toán Một Chạm")}
                     </h3>
-                    <p className="text-gray-400 mb-8 font-medium italic text-sm">
-                      {!showPayment ? "Gói dịch vụ cao cấp tại The Hub" : "Quét mã QR để hoàn tất trong 3 giây"}
+                    <p className="text-gray-400 mb-8 font-medium italic text-xs uppercase tracking-widest">
+                      {!showPayment ? "Gói dịch vụ cao cấp tại The Hub" : (paymentStep === "card" ? "Nhập thông tin thẻ Visa/Mastercard" : "Chọn phương thức phù hợp với bạn")}
                     </p>
                     
                     {!showPayment ? (
@@ -333,77 +413,184 @@ const Services = () => {
                       </div>
                     ) : (
                       <div className="space-y-8">
-                        <div className="grid grid-cols-2 gap-4">
-                          {[
-                            { id: "momo", name: "Ví Momo", icon: "https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" },
-                            { id: "vnpay", name: "VNPay QR", icon: "https://vinadesign.vn/uploads/images/2023/05/vnpay-logo-vinadesign-25-12-57-55.jpg" },
-                            { id: "vietqr", name: "VietQR", icon: "https://vietqr.net/img/vietqr-logo-02.png" },
-                            { id: "hub-coin", name: "Hub-Coin", icon: null },
-                          ].map(pay => (
-                            <button 
-                              key={pay.id}
-                              onClick={() => setPaymentMethod(pay.id)}
-                              className={`p-4 rounded-2xl glass border flex flex-col items-center gap-2 transition-all ${paymentMethod === pay.id ? "border-hub-blue bg-hub-blue/10 scale-105" : "border-white/5 opacity-60 hover:opacity-100"}`}
-                            >
-                               {pay.icon ? <img src={pay.icon} className="h-6 object-contain" referrerPolicy="no-referrer" /> : <Wallet className="w-6 h-6 text-hub-magenta" />}
-                               <span className="text-[8px] font-black uppercase tracking-widest">{pay.name}</span>
-                            </button>
-                          ))}
-                        </div>
-
-                        {paymentMethod && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: 10 }} 
-                            animate={{ opacity: 1, y: 0 }}
-                            className="glass p-6 rounded-2xl border-white/10 text-center"
-                          >
-                            {paymentMethod === "hub-coin" ? (
-                              <div className="py-4">
-                                <div className="text-hub-magenta font-black text-xl mb-1">{ordering.price} HH</div>
-                                <p className="text-[8px] text-gray-500 uppercase font-black">Số dư HH của bạn: {profile?.hubCoins || 0}</p>
+                        {paymentStep === "methods" ? (
+                           <>
+                             <div className="grid grid-cols-2 gap-4">
+                               {[
+                                 { id: "momo", name: "Ví Momo", icon: "https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" },
+                                 { id: "vnpay", name: "VNPay QR", icon: "https://vinadesign.vn/uploads/images/2023/05/vnpay-logo-vinadesign-25-12-57-55.jpg" },
+                                 { id: "credit-card", name: "Thẻ Quốc tế", icon: null, isCredit: true },
+                                 { id: "hub-coin", name: "Hub-Coin", icon: null },
+                               ].map(pay => (
+                                 <button 
+                                   key={pay.id}
+                                   onClick={() => {
+                                      setPaymentMethod(pay.id);
+                                      if (pay.id === "credit-card") setPaymentStep("card");
+                                   }}
+                                   className={`p-4 rounded-2xl glass border flex flex-col items-center gap-2 transition-all ${paymentMethod === pay.id ? "border-hub-blue bg-hub-blue/10 scale-105 shadow-lg shadow-hub-blue/20" : "border-white/5 opacity-60 hover:opacity-100"}`}
+                                 >
+                                    {pay.isCredit ? <CreditCard className="w-6 h-6 text-hub-blue" /> : pay.icon ? <img src={pay.icon} className="h-6 object-contain" referrerPolicy="no-referrer" /> : <Wallet className="w-6 h-6 text-hub-magenta" />}
+                                    <span className="text-[8px] font-black uppercase tracking-widest">{pay.name}</span>
+                                 </button>
+                               ))}
+                             </div>
+     
+                             {paymentMethod && paymentMethod !== "credit-card" && (
+                               <motion.div 
+                                 initial={{ opacity: 0, y: 10 }} 
+                                 animate={{ opacity: 1, y: 0 }}
+                                 className="glass p-6 rounded-2xl border-white/10 text-center"
+                               >
+                                 {paymentMethod === "hub-coin" ? (
+                                   <div className="py-4">
+                                     <div className="text-hub-magenta font-black text-xl mb-1">{ordering.price} HH</div>
+                                     <p className="text-[8px] text-gray-500 uppercase font-black">Số dư HH của bạn: {profile?.hubCoins || 0}</p>
+                                   </div>
+                                 ) : (
+                                   <div className="flex flex-col items-center">
+                                     <div className="w-40 h-40 bg-white p-2 rounded-xl mb-4">
+                                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_${ordering.id}`} className="w-full h-full" referrerPolicy="no-referrer" />
+                                     </div>
+                                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Vui lòng quét mã và chờ xác nhận</p>
+                                   </div>
+                                 )}
+                               </motion.div>
+                             )}
+                           </>
+                        ) : (
+                           <motion.div 
+                             initial={{ opacity: 0, scale: 0.9 }}
+                             animate={{ opacity: 1, scale: 1 }}
+                             className="space-y-6"
+                           >
+                              <div className="glass p-6 rounded-[2rem] border-white/10 bg-gradient-to-br from-white/5 to-transparent relative overflow-hidden group">
+                                 <div className="absolute top-0 right-0 p-6 opacity-20"><CreditCard className="w-12 h-12" /></div>
+                                 <div className="space-y-4">
+                                    <div className="space-y-1">
+                                       <label className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-500 ml-2">Số thẻ (Demo: 4242 4242 4242 4242)</label>
+                                       <input 
+                                          type="text"
+                                          placeholder="XXXX XXXX XXXX XXXX"
+                                          value={cardData.number}
+                                          onChange={e => setCardData(prev => ({ ...prev, number: e.target.value }))}
+                                          className="w-full px-6 py-3 bg-white/5 rounded-xl border border-white/10 outline-none focus:border-hub-blue transition-all font-mono text-sm"
+                                       />
+                                    </div>
+                                    <div className="space-y-1">
+                                       <label className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-500 ml-2">Tên chủ thẻ (Viết hoa)</label>
+                                       <input 
+                                          type="text"
+                                          placeholder="NGUYEN VAN A"
+                                          value={cardData.name}
+                                          onChange={e => setCardData(prev => ({ ...prev, name: e.target.value.toUpperCase() }))}
+                                          className="w-full px-6 py-3 bg-white/5 rounded-xl border border-white/10 outline-none focus:border-hub-blue transition-all text-sm font-bold"
+                                       />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                       <div className="space-y-1">
+                                          <label className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-500 ml-2">Ngày hết hạn</label>
+                                          <input 
+                                             type="text"
+                                             placeholder="MM/YY"
+                                             value={cardData.expiry}
+                                             onChange={e => setCardData(prev => ({ ...prev, expiry: e.target.value }))}
+                                             className="w-full px-6 py-3 bg-white/5 rounded-xl border border-white/10 outline-none focus:border-hub-blue transition-all text-sm"
+                                          />
+                                       </div>
+                                       <div className="space-y-1">
+                                          <label className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-500 ml-2">Mã CVV</label>
+                                          <input 
+                                             type="password"
+                                             placeholder="***"
+                                             value={cardData.cvv}
+                                             maxLength={3}
+                                             onChange={e => setCardData(prev => ({ ...prev, cvv: e.target.value }))}
+                                             className="w-full px-6 py-3 bg-white/5 rounded-xl border border-white/10 outline-none focus:border-hub-blue transition-all text-sm"
+                                          />
+                                       </div>
+                                    </div>
+                                    <div className="p-4 bg-hub-blue/5 rounded-xl border border-hub-blue/20 flex items-center gap-3">
+                                       <div className="w-8 h-8 rounded-full bg-hub-blue/20 flex items-center justify-center text-hub-blue"><Zap className="w-4 h-4" /></div>
+                                       <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">Thông tin thẻ được mã hóa AES-256 đầu cuối. The Hub không lưu giữ số thẻ của bạn.</p>
+                                    </div>
+                                 </div>
                               </div>
-                            ) : (
-                              <div className="flex flex-col items-center">
-                                <div className="w-40 h-40 bg-white p-2 rounded-xl mb-4">
-                                   <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_${ordering.id}`} className="w-full h-full" referrerPolicy="no-referrer" />
-                                </div>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Vui lòng quét mã và chờ xác nhận</p>
-                              </div>
-                            )}
-                          </motion.div>
+                           </motion.div>
                         )}
-
+                        
                         <div className="flex gap-4">
                           <button 
-                            disabled={isSubmitting}
-                            onClick={() => setShowPayment(false)}
+                            disabled={isSubmitting || isProcessing}
+                            onClick={() => {
+                               if (paymentStep === "card") {
+                                  setPaymentStep("methods");
+                                  setPaymentMethod(null);
+                               } else {
+                                  setShowPayment(false);
+                               }
+                            }}
                             className="flex-1 py-4 glass rounded-full font-bold uppercase tracking-widest text-[10px]"
                           >
                             Trở lại
                           </button>
                           <button 
-                            disabled={isSubmitting || !paymentMethod}
+                            disabled={isSubmitting || !paymentMethod || isProcessing}
                             onClick={handlePlaceOrder}
-                            className="flex-[2] py-4 bg-hub-blue rounded-full font-bold uppercase tracking-widest text-[10px] hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-lg shadow-hub-blue/30 disabled:opacity-50"
+                            className="flex-[2] py-4 bg-hub-blue rounded-full font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-lg shadow-hub-blue/30 disabled:opacity-50"
                           >
-                            {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Xác nhận & Giữ chỗ"}
+                            {isProcessing ? (
+                               <>
+                                 <Loader2 className="w-5 h-5 animate-spin" /> Verifying Visa...
+                               </>
+                            ) : isSubmitting ? (
+                               <>
+                                 <Loader2 className="w-5 h-5 animate-spin" /> Preparing Pass...
+                               </>
+                            ) : "Xác nhận Thanh toán"}
                           </button>
                         </div>
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="text-center py-10">
-                    <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-8 border-4 border-green-500/30">
-                      <Check className="w-10 h-10 text-green-500" />
+                  <div className="text-center py-10 space-y-8">
+                    <div className="relative inline-block">
+                       <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(34,197,94,0.4)] relative z-10">
+                         <Check className="w-12 h-12 text-white" />
+                       </div>
+                       <motion.div 
+                          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.2, 0.5] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                          className="absolute inset-0 bg-green-500 rounded-full blur-2xl" 
+                       />
                     </div>
-                    <h3 className="text-3xl font-bold mb-4 uppercase tracking-tight">Đặt hàng thành công!</h3>
-                    <p className="text-gray-400 text-sm leading-relaxed mb-8">Hub-Team sẽ liên hệ với bạn trong vòng 30 phút để xác nhận chi tiết và hỗ trợ setup.</p>
+                    
+                    <div>
+                       <h3 className="text-4xl font-black mb-2 uppercase tracking-tight italic">Giao dịch Hoàn tất!</h3>
+                       <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em]">{ordering.title} đã được kích hoạt</p>
+                    </div>
+
+                    <div className="glass p-8 rounded-[2.5rem] border-hub-blue/30 bg-hub-blue/5 space-y-6">
+                       <div className="bg-white p-3 rounded-2xl w-32 h-32 mx-auto shadow-2xl">
+                          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrCodeData}`} className="w-full h-full" referrerPolicy="no-referrer" />
+                       </div>
+                       <div className="space-y-1">
+                          <div className="text-[10px] text-hub-blue font-black uppercase tracking-widest">Hub-Pass Tạm thời</div>
+                          <div className="text-sm font-mono font-bold text-white">{qrCodeData}</div>
+                       </div>
+                    </div>
+
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
+                       Chúng tớ đã gửi hóa đơn chi tiết qua Email của bạn.<br/>
+                       Hẹn gặp bạn tại The Hub!
+                    </div>
+
                     <button 
                       onClick={() => setOrdering(null)}
-                      className="px-12 py-4 glass rounded-full font-bold uppercase tracking-widest text-[10px]"
+                      className="px-12 py-4 glass rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all border-white/10"
                     >
-                      Đóng
+                      Xong
                     </button>
                   </div>
                 )}

@@ -1,17 +1,27 @@
 import React from "react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
-import { Zap, Users, Lightbulb, Mic2, ArrowRight, ChevronRight, Globe, Layout, Cpu, Eye } from "lucide-react";
+import { Zap, Users, Lightbulb, Mic2, ArrowRight, ChevronRight, Globe, Layout, Cpu, Eye, Container, Maximize, Sparkles } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { askHubAI } from "../lib/gemini";
 
 const Home = () => {
   const navigate = useNavigate();
+  const [aiIdea, setAiIdea] = React.useState("");
+  const [isAiLoading, setIsAiLoading] = React.useState(false);
+
+  const getAiIdea = async () => {
+    setIsAiLoading(true);
+    const idea = await askHubAI("Gợi ý 1 ý tưởng sự kiện độc đáo, điên rồ và cực kỳ 'The Hub' cho sinh viên sáng tạo. Chỉ cần 2 câu ngắn gọn.");
+    setAiIdea(idea);
+    setIsAiLoading(false);
+  };
 
   const highlights = [
-    { icon: <Layout className="w-8 h-8" />, title: "Không gian thông minh", desc: "Hệ thống quản lý phòng tự động, tối ưu hóa ánh sáng và nhiệt độ." },
-    { icon: <Cpu className="w-8 h-8" />, title: "Công nghệ AI Matching", desc: "Kết nối các thành viên có cùng sở thích và kỹ năng chuyên môn." },
-    { icon: <Eye className="w-8 h-8" />, title: "Trải nghiệm AR", desc: "Xem trước layout sự kiện qua công nghệ thực tế tăng cường." },
+    { icon: <Container className="w-8 h-8" />, title: "Workshop Container", desc: "Sử dụng vật liệu tái chế, thùng phi và pallet gỗ sơn màu Neon cực chất." },
+    { icon: <Maximize className="w-8 h-8" />, title: "Không gian Đa năng", desc: "Nội thất linh hoạt, sàn bê tông mài với những câu Quote cảm hứng." },
+    { icon: <Eye className="w-8 h-8" />, title: "Góc AR Check-in", desc: "Quét mã để chiêm ngưỡng các tác phẩm 3D về tương lai ngay tại Hub." },
   ];
 
   const events = [
@@ -170,6 +180,52 @@ const Home = () => {
                 </div>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* AI Inspiration Section */}
+      <section className="py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-hub-blue/5 to-transparent" />
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="glass p-12 md:p-20 rounded-[4rem] border-white/5 flex flex-col items-center text-center">
+            <div className="w-20 h-20 rounded-3xl bg-hub-purple/20 flex items-center justify-center text-hub-purple mb-8 animate-pulse">
+              <Sparkles className="w-10 h-10" />
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-6">
+              Bạn đang thiếu <span className="text-hub-blue italic">Cảm hứng?</span>
+            </h2>
+            <p className="text-gray-400 max-w-xl mx-auto mb-10 font-bold uppercase text-[10px] tracking-widest leading-relaxed">
+              Hãy để trí tuệ nhân tạo Hub-AI gợi ý cho bạn những ý tưởng sự kiện đột phá nhất ngay bây giờ.
+            </p>
+            
+            <div className="min-h-[100px] flex items-center justify-center mb-10">
+              {isAiLoading ? (
+                <div className="flex gap-2">
+                  <div className="w-2 h-2 rounded-full bg-hub-blue animate-bounce" />
+                  <div className="w-2 h-2 rounded-full bg-hub-blue animate-bounce [animation-delay:-0.15s]" />
+                  <div className="w-2 h-2 rounded-full bg-hub-blue animate-bounce [animation-delay:-0.3s]" />
+                </div>
+              ) : aiIdea ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="p-8 glass bg-white/5 rounded-3xl border-none italic font-medium text-lg text-hub-blue"
+                >
+                  "{aiIdea}"
+                </motion.div>
+              ) : (
+                <div className="text-gray-600 italic">Nhấn nút bên dưới để bắt đầu...</div>
+              )}
+            </div>
+
+            <button 
+              onClick={getAiIdea}
+              disabled={isAiLoading}
+              className="px-12 py-4 bg-hub-purple rounded-full font-black uppercase tracking-widest text-[10px] glow-purple hover:scale-110 transition-all flex items-center gap-3 disabled:opacity-50"
+            >
+              <Zap className="w-4 h-4 fill-white" /> Khởi tạo ý tưởng ngay
+            </button>
           </div>
         </div>
       </section>

@@ -5,6 +5,8 @@ import { Zap, Users, Calendar, ArrowRight, ChevronRight, CheckCircle2, CreditCar
 import PageLayout from "../components/PageLayout";
 import { useAuth } from "../components/AuthProvider";
 import { logout, db } from "../lib/firebase";
+import { askHubAI } from "../lib/gemini";
+import { Sparkles, Bot, Clock, TrendingUp } from "lucide-react";
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, increment } from "firebase/firestore";
 
 const Dashboard = () => {
@@ -13,6 +15,8 @@ const Dashboard = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState<string | null>(null);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleRedeem = async (reward: any) => {
@@ -37,6 +41,25 @@ const Dashboard = () => {
       setIsRedeeming(false);
     }
   };
+
+  const getAiInsight = async () => {
+    if (!profile) return;
+    setIsAiLoading(true);
+    const content = `User profile: Interests: ${profile.interests || 'N/A'}, Skills: ${profile.skills || 'N/A'}. Create a short, visionary prediction (1 sentence) for this member at The Hub.`;
+    try {
+      const insight = await askHubAI(content);
+      setAiInsight(insight);
+    } catch (e) {
+      setAiInsight("Hub-AI đang phân tích các khả năng tương lai của bạn...");
+    }
+    setIsAiLoading(false);
+  };
+
+  useEffect(() => {
+    if (profile && !aiInsight && !isAiLoading) {
+      getAiInsight();
+    }
+  }, [profile]);
 
   const rewards = [
     { title: "Cà phê Free", cost: 50, icon: <Coffee />, desc: "1 ly cafe bất kỳ tại quầy bar" },
@@ -188,6 +211,57 @@ const Dashboard = () => {
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-8"
                 >
+                  {/* Hub-AI Insights */}
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="glass p-8 rounded-[3rem] border-hub-blue/20 bg-hub-blue/5 relative overflow-hidden group"
+                  >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-hub-blue opacity-5 blur-3xl -mr-10 -mt-10" />
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-hub-blue/20 flex items-center justify-center text-hub-blue shadow-lg shadow-hub-blue/20">
+                          <Bot className="w-7 h-7" />
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-black uppercase tracking-widest text-white leading-none">Hub-AI Insights</h3>
+                          <span className="text-[9px] font-bold text-hub-blue uppercase tracking-widest mt-1 block">Dự đoán tương lai của bạn</span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={getAiInsight}
+                        className="w-10 h-10 rounded-xl glass border-white/5 flex items-center justify-center text-gray-500 hover:text-white transition-all hover:bg-white/5"
+                      >
+                        <History className="w-5 h-5 transition-transform hover:rotate-180" />
+                      </button>
+                    </div>
+                    
+                    <div className="min-h-[60px] flex items-center">
+                      {isAiLoading ? (
+                        <div className="flex gap-2">
+                          <div className="w-2 h-2 rounded-full bg-hub-blue animate-bounce" />
+                          <div className="w-2 h-2 rounded-full bg-hub-blue animate-bounce [animation-delay:-0.15s]" />
+                          <div className="w-2 h-2 rounded-full bg-hub-blue animate-bounce [animation-delay:-0.3s]" />
+                        </div>
+                      ) : (
+                        <p className="text-lg italic font-medium text-hub-blue leading-relaxed">
+                          "{aiInsight || 'Đang phân tích tiềm năng của bạn tại The Hub...'}"
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="mt-6 pt-6 border-t border-white/5 flex items-center gap-6">
+                       <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-green-400" />
+                          <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Tier: Elite Creator</span>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-hub-purple" />
+                          <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Tiếp theo: Workshop AR</span>
+                       </div>
+                    </div>
+                  </motion.div>
+
                   <div className="glass p-10 rounded-[3rem] border-white/10">
                     <h2 className="text-3xl font-bold mb-8 uppercase tracking-tighter">Thông tin cá nhân</h2>
                     <div className="grid md:grid-cols-2 gap-8">

@@ -1,29 +1,22 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { MessageSquare, X, Send, Bot, Sparkles, Minus, Maximize2 } from "lucide-react";
+import { Bot, Send, X, Minimize2, Maximize2, Sparkles, Zap, MessageSquare } from "lucide-react";
 import { askHubAI } from "../lib/gemini";
-
-interface Message {
-  role: "user" | "model";
-  text: string;
-}
 
 const AIAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "model", text: "Chào bạn! Mình là Hub-AI. Bạn cần hỗ trợ gì về không gian hay kết nối cộng đồng tại The Hub không?" }
-  ]);
   const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<{ role: "user" | "model"; text: string }[]>([
+    { role: "model", text: "Chào Huber! Tôi là Hub-AI. Tôi có thể giúp bạn tìm phòng, lên ý tưởng sự kiện hoặc kết nối đồng đội. Bạn cần gì hôm nay?" }
+  ]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-  
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isOpen, isMinimized]);
+  }, [messages, isLoading]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -33,153 +26,115 @@ const AIAssistant = () => {
     setMessages(prev => [...prev, { role: "user", text: userMessage }]);
     setIsLoading(true);
 
-    // Prepare history for API
+    // Format history for Gemini
     const history = messages.map(m => ({
       role: m.role,
       parts: [{ text: m.text }]
     }));
 
     const response = await askHubAI(userMessage, history);
-    
     setMessages(prev => [...prev, { role: "model", text: response }]);
     setIsLoading(false);
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end">
+    <div className="fixed bottom-8 right-8 z-[100]">
       <AnimatePresence>
-        {isOpen && (
+        {isOpen ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ 
-              opacity: 1, 
-              scale: 1, 
-              y: 0,
-              height: isMinimized ? "auto" : "500px" 
-            }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className={`glass w-[350px] md:w-[400px] mb-4 overflow-hidden flex flex-col border-white/10 shadow-2xl rounded-[2rem] glow-purple`}
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            className="w-[350px] sm:w-[400px] h-[500px] glass rounded-[2.5rem] border-white/10 shadow-2xl flex flex-col overflow-hidden mb-4"
           >
             {/* Header */}
-            <div className="p-5 flex justify-between items-center bg-gradient-to-r from-hub-purple/20 to-hub-blue/20 border-b border-white/5">
+            <div className="p-6 bg-gradient-to-r from-hub-purple to-hub-blue flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-hub-purple flex items-center justify-center">
-                  <Bot className="text-white w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <Bot className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold uppercase tracking-widest leading-none mb-1">Hub-AI</h3>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">AI Concierge Online</span>
-                  </div>
+                  <h3 className="text-sm font-black uppercase tracking-widest leading-none">Hub-AI</h3>
+                  <span className="text-[10px] font-bold text-white/70 uppercase">Online & Ready</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <button 
-                  onClick={() => setIsMinimized(!isMinimized)}
-                  className="p-2 hover:bg-white/5 rounded-lg transition-colors text-gray-400"
-                >
-                  {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
-                </button>
-                <button 
-                  onClick={() => setIsOpen(false)}
-                  className="p-2 hover:bg-white/5 rounded-lg transition-colors text-gray-400"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
             </div>
 
             {/* Chat Area */}
-            {!isMinimized && (
-              <>
-                <div 
-                  ref={scrollRef}
-                  className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar bg-hub-black/20"
+            <div 
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar"
+            >
+              {messages.map((m, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: m.role === 'user' ? 20 : -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  {messages.map((m, i) => (
-                    <div 
-                      key={i} 
-                      className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
-                    >
-                      <div 
-                        className={`max-w-[85%] p-4 rounded-2xl text-xs leading-relaxed ${
-                          m.role === "user" 
-                            ? "bg-hub-purple text-white rounded-tr-none" 
-                            : "glass text-gray-200 rounded-tl-none border-white/5"
-                        }`}
-                      >
-                        {m.text}
-                      </div>
-                    </div>
-                  ))}
-                  {isLoading && (
-                    <div className="flex justify-start">
-                      <div className="glass p-4 rounded-2xl rounded-tl-none border-white/5 flex gap-1">
-                        <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1 h-1 bg-hub-blue rounded-full" />
-                        <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1 h-1 bg-hub-purple rounded-full" />
-                        <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1 h-1 bg-hub-magenta rounded-full" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Input */}
-                <div className="p-4 bg-hub-black/30 border-t border-white/5">
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                      placeholder="Hỏi Hub-AI về sự kiện..."
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:border-hub-blue focus:outline-none pr-12 transition-all"
-                    />
-                    <button 
-                      onClick={handleSend}
-                      disabled={isLoading || !input.trim()}
-                      className="absolute right-2 top-1.5 bottom-1.5 px-3 bg-hub-purple rounded-lg hover:bg-hub-blue transition-colors disabled:opacity-50"
-                    >
-                      <Send className="w-4 h-4 text-white" />
-                    </button>
+                  <div className={`max-w-[85%] p-4 rounded-2xl text-xs font-medium leading-relaxed ${
+                    m.role === 'user' 
+                      ? 'bg-hub-blue text-white rounded-tr-none shadow-lg shadow-hub-blue/20' 
+                      : 'glass border-white/5 rounded-tl-none'
+                  }`}>
+                    {m.text}
+                  </div>
+                </motion.div>
+              ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="glass p-4 rounded-2xl rounded-tl-none flex gap-1">
+                    <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 rounded-full bg-hub-purple" />
+                    <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-hub-blue" />
+                    <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                   </div>
                 </div>
-              </>
-            )}
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div className="p-4 border-t border-white/5">
+              <div className="relative flex items-center bg-white/5 rounded-2xl p-1 px-4">
+                <input 
+                  type="text" 
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                  placeholder="Hỏi Hub-AI bất cứ điều gì..."
+                  className="flex-1 bg-transparent py-3 text-xs focus:outline-none font-medium"
+                />
+                <button 
+                  onClick={handleSend}
+                  disabled={isLoading || !input.trim()}
+                  className="w-10 h-10 rounded-xl bg-hub-purple flex items-center justify-center text-white shadow-lg shadow-hub-purple/20 disabled:opacity-50 transition-all hover:scale-110"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
 
       <motion.button
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-16 h-16 rounded-full bg-gradient-to-r from-hub-purple to-hub-blue flex items-center justify-center shadow-2xl relative group overflow-hidden"
+        className="w-16 h-16 rounded-[2rem] bg-gradient-to-tr from-hub-purple via-hub-blue to-cyan-400 p-0.5 shadow-2xl glow-purple"
       >
-        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-        <AnimatePresence mode="wait">
-          {isOpen ? (
-            <motion.div
-              key="close"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-            >
-              <X className="w-8 h-8 text-white" />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="bot"
-              initial={{ rotate: 90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: -90, opacity: 0 }}
-              className="relative"
-            >
-              <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-hub-gold animate-pulse" />
-              <Bot className="w-8 h-8 text-white" />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="w-full h-full rounded-[1.95rem] bg-hub-black flex items-center justify-center relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-tr from-hub-purple/20 to-hub-blue/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Bot className="w-8 h-8 text-white relative z-10" />
+          <div className="absolute top-1 right-1">
+            <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+          </div>
+        </div>
       </motion.button>
     </div>
   );
