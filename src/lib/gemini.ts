@@ -48,8 +48,8 @@ export async function askHubAI(prompt: string, history: { role: "user" | "model"
 /**
  * AI Event Config Suggestion
  */
-export async function suggestEventLayout(eventDetails: string) {
-  const prompt = `Based on these event details: "${eventDetails}", suggest the best Room, Layout (U-shape, Theater, Classroom, Standing), and Vibe (color/style) for this event at The Hub. Return your suggestion in a friendly, encouraging way.`;
+export async function suggestEventLayout(eventDetails: string, conceptTitle: string = "") {
+  const prompt = `Based on these event details: "${eventDetails}" and chosen Concept: "${conceptTitle}", suggest the best Room, Layout (U-shape, Theater, Classroom, Standing), and Vibe (color/style) for this event at The Hub. Return your suggestion in a friendly, encouraging way.`;
   return await askHubAI(prompt);
 }
 

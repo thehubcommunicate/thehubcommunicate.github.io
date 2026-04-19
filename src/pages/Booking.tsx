@@ -1,13 +1,52 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
-import { Zap, Users, Calendar, ArrowRight, ChevronRight, CheckCircle2, CreditCard, QrCode as QrIcon, Wallet, Layout, Palette, MessageSquare, Sparkles, Bot, Loader2, Map as MapIcon, Shield, Globe, Coffee, Wifi, Monitor, Info } from "lucide-react";
+import { Zap, Users, Calendar, ArrowRight, ChevronRight, CheckCircle2, CreditCard, QrCode as QrIcon, Wallet, Layout, Palette, MessageSquare, Sparkles, Bot, Loader2, Map as MapIcon, Shield, Globe, Coffee, Wifi, Monitor, Info, Trophy, Gem, Lightbulb, Star, Target, Layers, BookOpen, Copy } from "lucide-react";
 import PageLayout from "../components/PageLayout";
 import { suggestEventLayout } from "../lib/gemini";
 import { createBooking, db } from "../lib/firebase";
 import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { useAuth } from "../components/AuthProvider";
-import { Copy, QrCode as QrIconCode } from "lucide-react";
+
+interface ConceptTemplate {
+  id: string;
+  title: string;
+  tier: "essential" | "standard" | "premium";
+  description: string;
+  image: string;
+  features: string[];
+  basePrice: number;
+}
+
+const BUDGET_TIERS = [
+  { id: "essential", name: "Essential", desc: "Tối ưu ngân sách, hiệu quả tối đa", icon: <Zap className="w-5 h-5" />, color: "from-blue-500/20 to-cyan-500/20", borderColor: "border-blue-500/30", textColor: "text-blue-400" },
+  { id: "standard", name: "Standard", desc: "Sự cân bằng hoàn hảo cho sự kiện chuyên nghiệp", icon: <Star className="w-5 h-5" />, color: "from-purple-500/20 to-pink-500/20", borderColor: "border-purple-500/30", textColor: "text-purple-400" },
+  { id: "premium", name: "Premium", desc: "Đỉnh cao trải nghiệm, trọn gói sang trọng", icon: <Trophy className="w-5 h-5" />, color: "from-amber-500/20 to-orange-500/20", borderColor: "border-amber-500/30", textColor: "text-amber-400" },
+];
+
+const EVENT_TYPES = [
+  { id: "education", name: "Trải nghiệm giáo dục", icon: <BookOpen className="w-5 h-5" />, desc: "Workshop, Talkshow, Seminar" },
+  { id: "launch", name: "Ra mắt sản phẩm", icon: <Zap className="w-5 h-5" />, desc: "Showcase, Pop-up, Exhibition" },
+  { id: "community", name: "Hoạt động cộng đồng", icon: <Users className="w-5 h-5" />, desc: "Networking, Offline, Gathering" },
+];
+
+const CONCEPTS: Record<string, ConceptTemplate[]> = {
+  education: [
+    { id: "edu-ess", title: "Minimalist Learner", tier: "essential", basePrice: 1500000, description: "Không gian tinh gọn tập trung vào truyền tải kiến thức.", image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80", features: ["Âm thanh cơ bản", "Máy chiếu HD", "Nước uống tiêu chuẩn"] },
+    { id: "edu-std", title: "Academy Professional", tier: "standard", basePrice: 4500000, description: "Mô hình học viện chuyên nghiệp với hỗ trợ kỹ thuật tận tâm.", image: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80", features: ["Teabreak nhẹ", "Sắp xếp bàn chữ U", "Hỗ trợ kỹ thuật 1-1", "Bảng tương tác"] },
+    { id: "edu-pre", title: "Scholar Summit", tier: "premium", basePrice: 12000000, description: "Hội nghị thượng đỉnh với trải nghiệm tri thức cao cấp nhất.", image: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&q=80", features: ["Thực đơn buffet cao cấp", "Livestream đa góc quay", "Thi công backdrop riêng", "Hệ thống LED P2.5"] },
+  ],
+  launch: [
+    { id: "lau-ess", title: "Basic Showcase", tier: "essential", basePrice: 2000000, description: "Giải pháp nhanh gọn để đưa sản phẩm đến khách hàng.", image: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80", features: ["Bục trưng bày", "Đèn spotlight đơn", "Wifi tốc độ cao"] },
+    { id: "lau-std", title: "Creative Pop-up", tier: "standard", basePrice: 6500000, description: "Không gian trưng bày sáng tạo mang dấu ấn thương hiệu.", image: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80", features: ["Khu vực check-in photo", "Teabreak bánh ngọt", "Hệ thống âm thanh PA", "Standee thiết kế"] },
+    { id: "lau-pre", title: "Runway Sáng Tạo", tier: "premium", basePrice: 18000000, description: "Concept chuyển tải tinh thần thời trang và nghệ thuật đỉnh cao.", image: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80", features: ["Màn hình LED full-size", "Quay phim Event Highlight", "Đèn Moving Head", "Canapé & Wine"] },
+  ],
+  community: [
+    { id: "com-ess", title: "Hub Connect", tier: "essential", basePrice: 1000000, description: "Nơi gặp gỡ, kết nối cộng đồng một cách thân mật.", image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80", features: ["Không gian mở", "Nước uống", "Boardgame"] },
+    { id: "com-std", title: "Modern Vibe", tier: "standard", basePrice: 3500000, description: "Buổi offline ấm cúng với những tiện ích hiện đại.", image: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&q=80", features: ["Finger food", "Trang trí bong bóng", "Karaoke/Music System"] },
+    { id: "com-pre", title: "Gala Night", tier: "premium", basePrice: 10000000, description: "Đêm tiệc kết nối hoành tráng và đáng nhớ.", image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80", features: ["Tiệc tối Buffet", "MC chuyên nghiệp", "Nhiếp ảnh gia đồng hành", "Phần thưởng Hub-Coin"] },
+  ]
+};
 
 const Booking = () => {
   const [step, setStep] = useState(1);
@@ -18,103 +57,98 @@ const Booking = () => {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [qrPass, setQrPass] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
-  const [showQRStatus, setShowQRStatus] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<"methods" | "card">("methods");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isBookingDone, setIsBookingDone] = useState(false);
-  const [paymentStep, setPaymentStep] = useState<"methods" | "card">("methods");
+  const [hubPassCode, setHubPassCode] = useState("");
   const [cardData, setCardData] = useState({
      number: "",
      name: "",
      expiry: "",
      cvv: ""
   });
-  const [hubPassCode, setHubPassCode] = useState("");
-  const { user, profile } = useAuth();
+
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
+
+  // Tiered Booking State
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedTier, setSelectedTier] = useState<string>("standard");
+  const [selectedConcept, setSelectedConcept] = useState<ConceptTemplate | null>(null);
 
   const [bookingData, setBookingData] = useState({
+    roomId: null as string | null,
+    roomName: "",
     date: new Date().toISOString().split('T')[0],
     time: "10:00",
-    roomId: "hall-1",
-    roomName: "Creative Hall",
-    people: "10-20",
-    layout: "Chữ U",
-    vibe: "#7c3aed",
-    decor: "Hiện đại (Modern)",
+    participants: 10,
+    eventName: "",
+    description: "",
     privacy: "private" as "public" | "private",
     addOns: [] as string[],
-    totalAmount: 2500000,
+    totalAmount: 0,
   });
 
-  const rooms = [
-    { id: "hall-1", name: "Creative Hall", capacity: "50+", basePrice: 2000000, icon: <Layout className="w-5 h-5" /> },
-    { id: "nest-1", name: "The Nest", capacity: "10-20", basePrice: 800000, icon: <Users className="w-5 h-5" /> },
-    { id: "ar-1", name: "AR Studio", capacity: "5-10", basePrice: 1500000, icon: <Zap className="w-5 h-5" /> },
-    { id: "box-1", name: "Quiet Box", capacity: "1-2", basePrice: 100000, icon: <Shield className="w-5 h-5" /> },
-  ];
-
-  const layouts = ["Chữ U", "Rạp hát", "Tiệc đứng", "Lớp học"];
   const addOnsList = [
-    { id: "coffee", name: "Coffee trọn gói", price: 300000, icon: <Coffee className="w-4 h-4" /> },
-    { id: "wifi", name: "WiFi Pro 1Gbps", price: 150000, icon: <Wifi className="w-4 h-4" /> },
-    { id: "monitor", name: "Màn hình LED 4K", price: 500000, icon: <Monitor className="w-4 h-4" /> },
+    { id: "teabreak", name: "Gói Teabreak Cao cấp", price: 500000, icon: <Coffee className="w-4 h-4" /> },
+    { id: "camera", name: "Nhiếp ảnh chuyên nghiệp", price: 1500000, icon: <Layout className="w-4 h-4" /> },
+    { id: "livestream", name: "Hệ thống Livestream", price: 2500000, icon: <Monitor className="w-4 h-4" /> },
+    { id: "security", name: "An ninh & Lễ tân", price: 1000000, icon: <Shield className="w-4 h-4" /> },
   ];
 
-  const steps = [
-    { id: 1, title: "Chọn vị trí", icon: <MapIcon /> },
-    { id: 2, title: "Lịch & AI", icon: <Calendar /> },
-    { id: 3, title: "Tùy biến", icon: <Palette /> },
-    { id: 4, title: "Thanh toán", icon: <CreditCard /> },
+  const rooms = [
+    { id: "hall-1", name: "The Grand Hub I", type: "Event", capacity: "50-100", price: 1500000, image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=1200", tags: ["Sân khấu", "Màn hình LED"] },
+    { id: "nest-1", name: "The Nest II", type: "Creative", capacity: "10-20", price: 800000, image: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200", tags: ["Gương decor", "Spotlight"] },
+    { id: "suite-1", name: "Creative Suite III", type: "Academy", capacity: "20-40", price: 1200000, image: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=1200", tags: ["Bảng vẽ", "Acoustic System"] },
   ];
 
+  // Auto-calculate total based on selection
   useEffect(() => {
-    const base = rooms.find(r => r.id === bookingData.roomId)?.basePrice || 0;
-    const addOnsTotal = bookingData.addOns.reduce((acc, id) => {
+    let base = selectedConcept?.basePrice || 0;
+    const roomPrice = rooms.find(r => r.id === bookingData.roomId)?.price || 0;
+    const addOnPrice = bookingData.addOns.reduce((sum, id) => {
       const item = addOnsList.find(a => a.id === id);
-      return acc + (item?.price || 0);
+      return sum + (item?.price || 0);
     }, 0);
-    setBookingData(prev => ({ ...prev, totalAmount: base + addOnsTotal }));
-  }, [bookingData.roomId, bookingData.addOns]);
+    setBookingData(prev => ({ ...prev, totalAmount: base + roomPrice + addOnPrice }));
+  }, [selectedConcept, bookingData.roomId, bookingData.addOns]);
 
-  const isHighTier = bookingData.roomName.includes("Grand Hub") || bookingData.roomId === "hall-1";
+  const isHighTier = selectedTier === "premium" || (bookingData.roomName && bookingData.roomName.includes("Grand Hub"));
   const depositAmount = isHighTier ? bookingData.totalAmount * 0.5 : bookingData.totalAmount;
 
   const handleCreateBooking = async () => {
     if (!user) return alert("Vui lòng đăng nhập!");
     if (!paymentMethod) return alert("Vui lòng chọn phương thức thanh toán!");
     
-    if (paymentMethod === "credit-card") {
-       if (cardData.number !== "4242 4242 4242 4242") {
-          return alert("Demo: Vui lòng sử dụng số thẻ 4242 4242 4242 4242 để trải nghiệm!");
-       }
-       setIsProcessing(true);
-       await new Promise(resolve => setTimeout(resolve, 3000));
-       setIsProcessing(false);
+    if (paymentMethod === "credit-card" && cardData.number !== "4242 4242 4242 4242") {
+        return alert("Demo: Vui lòng sử dụng số thẻ 4242 4242 4242 4242!");
     }
 
-    // Hub-Coin Check
     if (paymentMethod === "hub-coin" && (profile?.hubCoins || 0) < bookingData.totalAmount) {
-      alert("Bạn không đủ Hub-Coin để thực hiện giao dịch này!");
-      return;
+      return alert("Bạn không đủ Hub-Coin!");
     }
 
     setIsSubmitting(true);
     try {
-      const res = await createBooking(user.uid, {
+      const finalData = {
         ...bookingData,
-        paymentStatus: (paymentMethod === "hub-coin" || paymentMethod === "credit-card") ? "paid" : "pending_verification",
+        conceptId: selectedConcept?.id,
+        conceptTitle: selectedConcept?.title,
+        tier: selectedTier,
+        type: selectedType,
+        userId: user.uid,
+        userName: user.displayName || "Anonymous",
+        status: "pending",
+        createdAt: new Date(),
         paymentMethod,
-        depositRequired: depositAmount,
-        bookingType: isHighTier ? "high-tier" : "standard",
-        totalAmount: bookingData.totalAmount
-      });
+        depositAmount: depositAmount,
+      };
 
-      // If Hub-Coin, deduct balance
+      const res = await createBooking(user.uid, finalData);
+
       if (paymentMethod === "hub-coin") {
         const userRef = doc(db, "users", user.uid);
-        await updateDoc(userRef, {
-          hubCoins: increment(-bookingData.totalAmount)
-        });
+        await updateDoc(userRef, { hubCoins: increment(-bookingData.totalAmount) });
       }
 
       const snap = await getDoc(res);
@@ -123,203 +157,171 @@ const Booking = () => {
       setQrPass(data?.qrPass || "");
       setHubPassCode(data?.qrPass || `HUB-${res.id.slice(0, 5)}`);
       setIsBookingDone(true);
-      setStep(5); // Success step
+      setStep(5);
     } catch (error) {
-      console.error("Booking error", error);
-      alert("Đã xảy ra lỗi khi tạo đơn đặt chỗ. Vui lòng thử lại.");
+      console.error(error);
+      alert("Lỗi khi đặt chỗ.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const toggleAddOn = (id: string) => {
-    setBookingData(prev => ({
-      ...prev,
-      addOns: prev.addOns.includes(id) 
-        ? prev.addOns.filter(a => a !== id)
-        : [...prev.addOns, id]
-    }));
+  const nextStep = () => {
+    if (step === 1 && !selectedType) return alert("Vui lòng chọn loại hình sự kiện!");
+    if (step === 2 && !selectedConcept) return alert("Vui lòng chọn một Concept!");
+    setStep(prev => prev + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
-  const nextStep = () => setStep(prev => Math.min(prev + 1, 4));
-  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+  const prevStep = () => setStep(prev => prev - 1);
 
   return (
     <PageLayout>
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-7xl font-black mb-6 text-gradient-cosmic uppercase tracking-tighter">ĐẶT CHỖ THÔNG MINH</h1>
-          <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-            Hệ thống đặt chỗ "Real-time" 30 giây. Làm chủ không gian, làm chủ thời gian.
+          <h1 className="text-5xl md:text-7xl font-black mb-6 text-gradient-cosmic uppercase tracking-tighter">THE HUB: CHOOSE YOUR VIBE</h1>
+          <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed uppercase tracking-[0.2em] font-bold text-[10px]">
+            Tích hợp Concept gợi ý theo ngân sách — Trải nghiệm cá nhân hóa 30 giây.
           </p>
         </div>
 
-        {/* Stepper */}
-        {step <= 4 && (
-          <div className="max-w-4xl mx-auto mb-20">
-            <div className="flex justify-between items-center relative">
-              <div className="absolute top-1/2 left-0 w-full h-px bg-white/5 -translate-y-1/2 z-0" />
-              <div 
-                className="absolute top-1/2 left-0 h-px bg-hub-blue -translate-y-1/2 z-0 transition-all duration-500" 
-                style={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}
-              />
-              {steps.map((s) => (
-                <div key={s.id} className="relative z-10 flex flex-col items-center gap-4">
-                  <div 
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${step >= s.id ? "bg-hub-blue text-white shadow-lg shadow-hub-blue/40" : "glass text-gray-500"}`}
-                  >
-                    {step > s.id ? <CheckCircle2 className="w-6 h-6" /> : s.icon}
+        <div className="max-w-6xl mx-auto">
+          {/* Progress Indicator */}
+          {step <= 4 && (
+            <div className="flex justify-center mb-16 gap-4">
+              {[1, 2, 3, 4].map((s) => (
+                <div key={s} className="flex items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-xs transition-all duration-500 ${step >= s ? "bg-hub-purple text-white shadow-lg shadow-hub-purple/40" : "bg-white/5 text-gray-600"}`}>
+                    {s}
                   </div>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest ${step >= s.id ? "text-white" : "text-gray-500"}`}>{s.title}</span>
+                  {s < 4 && <div className={`w-12 h-[2px] mx-2 transition-all duration-700 ${step > s ? "bg-hub-purple" : "bg-white/5"}`} />}
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Step Content */}
-        <div className="max-w-5xl mx-auto glass p-8 md:p-12 rounded-[3rem] border-white/10 relative overflow-hidden mb-12 shadow-2xl">
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.div 
                 key="step1"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
-                className="space-y-8"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-12"
               >
-                <div className="text-center mb-12">
-                  <h2 className="text-3xl font-black uppercase tracking-widest mb-2 italic">Live-Map Trực quan</h2>
-                  <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Phòng nào xanh là trống, đỏ là đã kín. Chọn ngay vị trí lý tưởng!</p>
+                <div className="text-center space-y-4">
+                  <h2 className="text-5xl font-black uppercase italic tracking-tighter text-gradient-cosmic">Mục tiêu & Ngân sách</h2>
+                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] max-w-lg mx-auto leading-relaxed">Chọn loại hình sự kiện và tầng ngân sách để chúng tớ gợi ý concept tối ưu nhất cho bạn.</p>
                 </div>
 
-                <div className="grid lg:grid-cols-3 gap-8">
-                  <div className="lg:col-span-2 relative aspect-video glass rounded-3xl border-white/5 p-4 flex items-center justify-center overflow-hidden">
-                    {/* SVG Live Map Placeholder */}
-                    <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #38bdf8 1px, transparent 0)', backgroundSize: '30px 30px' }} />
-                    <div className="grid grid-cols-2 gap-4 w-full h-full relative z-10">
-                      {rooms.map((room) => (
-                        <button
-                          key={room.id}
-                          onClick={() => setBookingData(prev => ({ ...prev, roomId: room.id, roomName: room.name }))}
-                          className={`relative rounded-2xl border transition-all flex flex-col items-center justify-center gap-3 group ${bookingData.roomId === room.id ? "bg-hub-blue/20 border-hub-blue" : "glass border-white/10 hover:border-hub-blue/50"}`}
-                        >
-                          <div className={`p-4 rounded-xl ${bookingData.roomId === room.id ? "bg-hub-blue text-white" : "glass text-hub-blue group-hover:scale-110 transition-transform"}`}>
-                            {room.icon}
-                          </div>
-                          <div className="text-center">
-                            <div className="text-[10px] font-black uppercase tracking-widest mb-1">{room.name}</div>
-                            <div className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">{room.capacity} người</div>
-                          </div>
-                          {Math.random() > 0.7 && bookingData.roomId !== room.id && (
-                            <div className="absolute top-2 right-2 px-2 py-0.5 bg-red-500/20 text-red-500 text-[6px] font-black uppercase tracking-widest rounded-full border border-red-500/30">Đã kín</div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-6">
-                    <div className="glass p-6 rounded-2xl border-white/5 h-full">
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-hub-blue mb-6">Chi tiết lựa chọn</h4>
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] text-gray-500 uppercase font-black">Phòng:</span>
-                          <span className="text-xs font-bold">{bookingData.roomName}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] text-gray-500 uppercase font-black">Giá cơ sở:</span>
-                          <span className="text-xs font-bold text-hub-blue">{(rooms.find(r => r.id === bookingData.roomId)?.basePrice || 0).toLocaleString()}đ</span>
-                        </div>
+                <div className="grid md:grid-cols-2 gap-12">
+                   <div className="space-y-6">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4 flex items-center gap-2 italic">
+                         <Target className="w-4 h-4" /> 1. Loại hình sự kiện
+                      </label>
+                      <div className="grid gap-4">
+                         {EVENT_TYPES.map(type => (
+                           <button 
+                             key={type.id}
+                             onClick={() => setSelectedType(type.id)}
+                             className={`w-full p-6 text-left rounded-[2rem] border transition-all flex items-center gap-6 group relative overflow-hidden ${selectedType === type.id ? "bg-hub-blue/10 border-hub-blue shadow-lg shadow-hub-blue/20" : "glass border-white/5 hover:border-white/10"}`}
+                           >
+                              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${selectedType === type.id ? "bg-hub-blue text-white" : "bg-white/5 text-gray-500"}`}>
+                                 {type.icon}
+                              </div>
+                              <div className="flex-1">
+                                 <div className="text-sm font-black uppercase tracking-widest text-white">{type.name}</div>
+                                 <div className="text-[10px] text-gray-500 uppercase font-black">{type.desc}</div>
+                              </div>
+                              {selectedType === type.id && <div className="absolute top-2 right-2 w-2 h-2 bg-hub-blue rounded-full" />}
+                           </button>
+                         ))}
                       </div>
-                      <div className="mt-8 p-4 bg-hub-blue/10 rounded-xl flex items-start gap-3">
-                        <Info className="w-4 h-4 text-hub-blue flex-shrink-0" />
-                        <p className="text-[9px] text-gray-400 italic">"Đặt ngay để không bỏ lỡ không gian sáng tạo nhất tại The Hub."</p>
+                   </div>
+
+                   <div className="space-y-6">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4 flex items-center gap-2 italic">
+                         <Layers className="w-4 h-4" /> 2. Tầng ngân sách dự kiến
+                      </label>
+                      <div className="grid gap-4">
+                         {BUDGET_TIERS.map(tier => (
+                            <button 
+                              key={tier.id}
+                              onClick={() => setSelectedTier(tier.id)}
+                              className={`w-full p-6 text-left rounded-[2rem] border transition-all relative overflow-hidden group ${selectedTier === tier.id ? `bg-gradient-to-br ${tier.color} border-${tier.borderColor} shadow-xl` : "glass border-white/5 hover:border-white/10"}`}
+                            >
+                               <div className="flex justify-between items-center mb-3">
+                                  <div className={`p-3 rounded-xl ${selectedTier === tier.id ? "bg-white text-hub-black" : "bg-white/5 text-gray-500"}`}>
+                                     {tier.icon}
+                                  </div>
+                                  <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${selectedTier === tier.id ? tier.textColor : "text-gray-600"}`}>
+                                     {tier.name}
+                                  </span>
+                               </div>
+                               <div className="text-sm font-black uppercase tracking-widest text-white mb-1">{tier.name === "Essential" ? "Gói Cơ bản" : tier.name === "Standard" ? "Gói Tiêu chuẩn" : "Gói Cao cấp"}</div>
+                               <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed line-clamp-2">{tier.desc}</div>
+                            </button>
+                         ))}
                       </div>
-                    </div>
-                  </div>
+                   </div>
                 </div>
               </motion.div>
             )}
-
             {step === 2 && (
               <motion.div 
                 key="step2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-10"
+                className="space-y-12"
               >
-                <div className="text-center mb-8">
-                  <h2 className="text-3xl font-black uppercase italic tracking-widest mb-2">Cấu máy thời gian</h2>
-                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Lên lịch sự kiện và để AI gợi ý cấu hình tối ưu nhất.</p>
+                <div className="text-center space-y-4">
+                  <h2 className="text-5xl font-black uppercase italic tracking-tighter text-gradient-cosmic">Concept gợi ý cho bạn</h2>
+                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] max-w-lg mx-auto">Dựa trên mục tiêu {EVENT_TYPES.find(t => t.id === selectedType)?.name.toLowerCase()}, đây là các lựa chọn phù hợp nhất.</p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Ngày diễn ra</label>
-                    <input 
-                      type="date" 
-                      value={bookingData.date}
-                      onChange={(e) => setBookingData(prev => ({ ...prev, date: e.target.value }))}
-                      className="w-full px-6 py-4 rounded-2xl glass border-white/5 focus:border-hub-blue outline-none transition-all" 
-                    />
-                  </div>
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Khung giờ bắt đầu</label>
-                    <select 
-                      value={bookingData.time}
-                      onChange={(e) => setBookingData(prev => ({ ...prev, time: e.target.value }))}
-                      className="w-full px-6 py-4 rounded-2xl glass border-white/5 focus:border-hub-blue outline-none transition-all appearance-none"
-                    >
-                      {["08:00", "10:00", "13:00", "15:00", "18:00", "20:00"].map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                {/* AI Planner Section */}
-                <div className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-hub-purple to-hub-blue rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-                  <div className="relative glass p-8 rounded-3xl border-white/10 bg-hub-purple/5">
-                    <div className="flex items-center gap-3 mb-6">
-                      <Sparkles className="w-5 h-5 text-hub-purple animate-pulse" />
-                      <h4 className="text-xs font-black uppercase tracking-widest leading-none">Hub-AI Smart Planner</h4>
-                    </div>
-                    <div className="flex gap-4 mb-6">
-                      <textarea 
-                        value={eventContext}
-                        onChange={(e) => setEventContext(e.target.value)}
-                        placeholder="Mô tả sự kiện của bạn (vd: Workshop đồ họa cho 30 người, cần không gian mở...)" 
-                        className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs focus:border-hub-purple outline-none resize-none transition-all placeholder:text-gray-600"
-                        rows={2}
-                      />
-                      <button 
-                        onClick={async () => {
-                          if (!eventContext) return;
-                          setIsAiLoading(true);
-                          const suggestion = await suggestEventLayout(eventContext);
-                          setAiSuggestion(suggestion);
-                          setIsAiLoading(false);
-                        }}
-                        disabled={isAiLoading}
-                        className="px-8 bg-hub-purple rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all disabled:opacity-50 flex items-center justify-center"
-                      >
-                        {isAiLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Phân tích"}
-                      </button>
-                    </div>
-                    {aiSuggestion && (
+                <div className="grid lg:grid-cols-3 gap-8">
+                   {CONCEPTS[selectedType || "education"]?.map(concept => (
                       <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-6 glass rounded-2xl border-hub-purple/20 text-[11px] leading-relaxed text-gray-300 italic flex gap-4"
+                        key={concept.id}
+                        whileHover={{ y: -10 }}
+                        onClick={() => setSelectedConcept(concept)}
+                        className={`cursor-pointer group relative rounded-[3.5rem] overflow-hidden border-2 transition-all p-4 ${selectedConcept?.id === concept.id ? "border-hub-blue bg-hub-blue/10" : "border-white/5 glass hover:border-white/10"}`}
                       >
-                         <Bot className="w-6 h-6 text-hub-purple flex-shrink-0" />
-                         <div>
-                          <div className="text-hub-purple font-black tracking-widest uppercase text-[9px] mb-2">Đề xuất từ AI:</div>
-                          {aiSuggestion}
+                         <div className="aspect-[4/5] rounded-[2.5rem] overflow-hidden mb-8 relative">
+                            <img src={concept.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" referrerPolicy="no-referrer" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-hub-black via-transparent to-transparent opacity-60" />
+                            <div className="absolute top-4 left-4">
+                               <span className="px-5 py-2 glass border-white/20 rounded-full text-[8px] font-black uppercase tracking-widest text-white backdrop-blur-md">
+                                  {concept.tier.toUpperCase()}
+                               </span>
+                            </div>
+                         </div>
+
+                         <div className="px-4 space-y-4">
+                            <div className="flex justify-between items-start">
+                               <h3 className="text-xl font-black uppercase italic tracking-tighter leading-tight text-white">{concept.title}</h3>
+                               <div className="text-right">
+                                  <div className="text-[8px] text-gray-500 uppercase font-black">Chỉ từ</div>
+                                  <div className="text-sm font-black text-hub-blue">{concept.basePrice.toLocaleString()}đ</div>
+                               </div>
+                            </div>
+                            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest leading-relaxed h-10 overflow-hidden line-clamp-2">{concept.description}</p>
+                            
+                            <div className="pt-4 border-t border-white/5 space-y-2">
+                               <div className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Bao gồm:</div>
+                               {concept.features.map((feat, i) => (
+                                 <div key={i} className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-gray-500">
+                                    <CheckCircle2 className="w-3 h-3 text-hub-blue" /> {feat}
+                                 </div>
+                               ))}
+                            </div>
+
+                            <button className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-[9px] transition-all ${selectedConcept?.id === concept.id ? "bg-hub-blue text-white shadow-xl shadow-hub-blue/30" : "bg-white/5 text-gray-400 group-hover:bg-white/10"}`}>
+                               {selectedConcept?.id === concept.id ? "Đã chọn Concept" : "Chọn Concept này"}
+                            </button>
                          </div>
                       </motion.div>
-                    )}
-                  </div>
+                   ))}
                 </div>
               </motion.div>
             )}
@@ -330,78 +332,174 @@ const Booking = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-12"
+                className="grid lg:grid-cols-2 gap-16"
               >
-                <div className="text-center mb-8">
-                  <h2 className="text-3xl font-black uppercase italic tracking-widest mb-2">Tùy biến & Kết nối</h2>
-                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Kiến tạo không gian 0 giây chờ đợi và mở rộng mạng lưới.</p>
+                <div className="space-y-12">
+                   <div className="space-y-4">
+                      <h2 className="text-4xl font-black uppercase italic tracking-tighter text-gradient-cosmic">Lịch trình & Chi tiết</h2>
+                      <div className="p-6 glass rounded-[2.5rem] border-hub-blue/20 bg-hub-blue/5 flex items-center gap-6">
+                         <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0">
+                            <img src={selectedConcept?.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                         </div>
+                         <div>
+                            <div className="text-[10px] font-black text-hub-blue uppercase tracking-widest">Concept đã chọn</div>
+                            <div className="text-xl font-black uppercase italic text-white">{selectedConcept?.title}</div>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="space-y-8">
+                     <div className="grid grid-cols-2 gap-6">
+                       <div className="space-y-2 text-left">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Ngày diễn ra</label>
+                         <input 
+                           type="date" 
+                           value={bookingData.date}
+                           onChange={e => setBookingData(prev => ({ ...prev, date: e.target.value }))}
+                           className="w-full px-6 py-4 glass border-white/10 rounded-2xl outline-none focus:border-hub-purple transition-all" 
+                         />
+                       </div>
+                       <div className="space-y-2 text-left">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Khung giờ</label>
+                         <select 
+                           value={bookingData.time}
+                           onChange={e => setBookingData(prev => ({ ...prev, time: e.target.value }))}
+                           className="w-full px-6 py-4 glass border-white/10 rounded-2xl outline-none focus:border-hub-purple appearance-none"
+                         >
+                           <option value="" className="bg-hub-black text-white">Chọn giờ</option>
+                           <option value="08:00 - 12:00" className="bg-hub-black text-white">08:00 - 12:00 (Sáng)</option>
+                           <option value="13:30 - 17:30" className="bg-hub-black text-white">13:30 - 17:30 (Chiều)</option>
+                           <option value="18:30 - 22:30" className="bg-hub-black text-white">18:30 - 22:30 (Tối)</option>
+                         </select>
+                       </div>
+                     </div>
+
+                     <div className="space-y-6">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Mô hình không gian (Mặc định gợi ý)</label>
+                       <div className="grid gap-4">
+                         {rooms.map(room => (
+                           <button 
+                             key={room.id}
+                             onClick={() => setBookingData(prev => ({ ...prev, roomId: room.id, roomName: room.name }))}
+                             className={`p-4 rounded-3xl border transition-all flex items-center gap-6 text-left relative overflow-hidden group ${bookingData.roomId === room.id ? "bg-hub-purple/10 border-hub-purple" : "glass border-white/5 hover:border-white/10"}`}
+                           >
+                             <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0">
+                               <img src={room.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
+                             </div>
+                             <div className="flex-1">
+                               <h4 className="text-sm font-black uppercase italic tracking-tighter text-white">{room.name}</h4>
+                               <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">{room.capacity} Người | {room.type}</p>
+                               <div className="flex gap-2 mt-2">
+                                  {room.tags.map(tag => (
+                                    <span key={tag} className="text-[8px] px-2 py-0.5 glass rounded-full opacity-60">{tag}</span>
+                                  ))}
+                               </div>
+                             </div>
+                             {bookingData.roomId === room.id && <div className="absolute top-2 right-2 w-2 h-2 bg-hub-purple rounded-full" />}
+                           </button>
+                         ))}
+                       </div>
+                     </div>
+                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-12">
-                  <div className="space-y-8">
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Kiểu sắp xếp (Smart Layout)</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {layouts.map(l => (
-                          <button
-                            key={l}
-                            onClick={() => setBookingData(prev => ({ ...prev, layout: l }))}
-                            className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${bookingData.layout === l ? "bg-hub-blue border-hub-blue" : "glass border-white/5 hover:border-white/20"}`}
-                          >
-                            {l}
-                          </button>
-                        ))}
+                <div className="space-y-12">
+                   <div className="space-y-6 w-full">
+                      <div className="flex justify-between items-center mb-4">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Quân sư AI: Sơ đồ gợi ý</label>
+                         <button 
+                           onClick={async () => {
+                             setIsAiLoading(true);
+                             const res = await suggestEventLayout(eventContext || "Sự kiện " + (selectedConcept?.title || ""), bookingData.roomName || "Không gian The Hub");
+                             setAiSuggestion(res);
+                             setIsAiLoading(false);
+                           }}
+                           disabled={isAiLoading}
+                           className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-hub-blue hover:text-white transition-colors"
+                         >
+                            {isAiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
+                            Hỏi Quân sư
+                         </button>
                       </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Chế độ hiển thị (Social Booking)</label>
-                      <div className="flex gap-4">
-                        <button
-                          onClick={() => setBookingData(prev => ({ ...prev, privacy: "private" }))}
-                          className={`flex-1 py-4 rounded-2xl flex flex-col items-center gap-2 transition-all ${bookingData.privacy === "private" ? "bg-hub-magenta border-hub-magenta scale-105" : "glass border-white/5 opacity-50"}`}
-                        >
-                          <Shield className="w-5 h-5" />
-                          <span className="text-[8px] font-black uppercase tracking-widest">Riêng tư</span>
-                        </button>
-                        <button
-                          onClick={() => setBookingData(prev => ({ ...prev, privacy: "public" }))}
-                          className={`flex-1 py-4 rounded-2xl flex flex-col items-center gap-2 transition-all ${bookingData.privacy === "public" ? "bg-hub-blue border-hub-blue scale-105" : "glass border-white/5 opacity-50"}`}
-                        >
-                          <Globe className="w-5 h-5" />
-                          <span className="text-[8px] font-black uppercase tracking-widest">Công khai</span>
-                        </button>
+                      <div className="glass p-6 rounded-[2.5rem] border-white/5 min-h-[160px] relative overflow-hidden font-mono text-[10px] leading-relaxed text-gray-400">
+                         {aiSuggestion ? (
+                           <div className="whitespace-pre-line text-left">{aiSuggestion}</div>
+                         ) : (
+                           <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+                              <Lightbulb className="w-8 h-8 opacity-20" />
+                              <p className="max-w-[180px]">Nhấn "Hỏi Quân sư" để nhận sơ đồ bố trí không gian tối ưu cho Concept này.</p>
+                           </div>
+                         )}
                       </div>
-                      <p className="text-[9px] text-gray-600 italic px-2">"Công khai để các thành viên khác có cơ hội giao lưu và kết nối với dự án của bạn."</p>
-                    </div>
-                  </div>
+                   </div>
 
-                  <div className="space-y-8">
-                    <div className="space-y-4">
+                   <div className="grid md:grid-cols-2 gap-8">
+                     <div className="space-y-4">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Quy mô (Số ghế)</label>
+                       <div className="flex gap-4 items-center">
+                         {[10, 25, 50, 100].map(l => (
+                           <button 
+                             key={l}
+                             onClick={() => setBookingData(prev => ({ ...prev, participants: l }))}
+                             className={`flex-1 py-4 rounded-2xl font-black text-[10px] transition-all ${bookingData.participants === l ? "bg-hub-magenta text-white" : "glass border-white/5 opacity-50"}`}
+                           >
+                             {l}
+                           </button>
+                         ))}
+                       </div>
+                     </div>
+
+                     <div className="space-y-4">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Chế độ hiển thị</label>
+                       <div className="flex gap-4">
+                         <button
+                           onClick={() => setBookingData(prev => ({ ...prev, privacy: "private" }))}
+                           className={`flex-1 py-4 rounded-2xl flex flex-col items-center gap-2 transition-all ${bookingData.privacy === "private" ? "bg-hub-magenta border-hub-magenta scale-105" : "glass border-white/5 opacity-50"}`}
+                         >
+                           <Shield className="w-5 h-5" />
+                           <span className="text-[8px] font-black uppercase tracking-widest">Riêng tư</span>
+                         </button>
+                         <button
+                           onClick={() => setBookingData(prev => ({ ...prev, privacy: "public" }))}
+                           className={`flex-1 py-4 rounded-2xl flex flex-col items-center gap-2 transition-all ${bookingData.privacy === "public" ? "bg-hub-blue border-hub-blue scale-105" : "glass border-white/5 opacity-50"}`}
+                         >
+                           <Globe className="w-5 h-5" />
+                           <span className="text-[8px] font-black uppercase tracking-widest">Công khai</span>
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+
+                   <div className="space-y-6">
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Vật phẩm bổ trợ (Add-ons)</label>
-                      <div className="space-y-3">
+                      <div className="grid sm:grid-cols-2 gap-3">
                         {addOnsList.map(item => (
                           <button
                             key={item.id}
-                            onClick={() => toggleAddOn(item.id)}
-                            className={`w-full p-4 rounded-2xl border transition-all flex justify-between items-center group ${bookingData.addOns.includes(item.id) ? "bg-hub-blue/20 border-hub-blue" : "glass border-white/5 hover:border-white/10"}`}
+                            onClick={() => {
+                              setBookingData(prev => ({
+                                ...prev,
+                                addOns: prev.addOns.includes(item.id) 
+                                  ? prev.addOns.filter(id => id !== item.id)
+                                  : [...prev.addOns, item.id]
+                              }));
+                            }}
+                            className={`p-4 rounded-2xl border transition-all flex justify-between items-center group ${bookingData.addOns.includes(item.id) ? "bg-hub-blue/20 border-hub-blue" : "glass border-white/5 hover:border-white/10"}`}
                           >
                             <div className="flex items-center gap-4">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${bookingData.addOns.includes(item.id) ? "bg-hub-blue text-white" : "glass text-gray-500"}`}>
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${bookingData.addOns.includes(item.id) ? "bg-hub-blue text-white" : "glass text-gray-500"}`}>
                                 {item.icon}
                               </div>
-                              <span className="text-[10px] font-black uppercase tracking-widest text-left">{item.name}</span>
+                              <span className="text-[9px] font-black uppercase tracking-widest text-left">{item.name}</span>
                             </div>
-                            <span className="text-[10px] font-black">{item.price.toLocaleString()}đ</span>
+                            <span className="text-[9px] font-black">+{item.price.toLocaleString()}đ</span>
                           </button>
                         ))}
                       </div>
-                    </div>
-                  </div>
+                   </div>
                 </div>
               </motion.div>
             )}
-
             {step === 4 && (
               <motion.div 
                 key="step4"
@@ -688,80 +786,121 @@ const Booking = () => {
                        </div>
 
                        <div className="space-y-4">
-                          <h2 className="text-6xl font-black uppercase italic tracking-tighter text-gradient-cosmic leading-tight">Ghi danh Đấu trường thành công!</h2>
-                          <p className="text-gray-500 text-xs font-bold uppercase tracking-[0.3em]">Hệ thống đã phê duyệt tư cách tham dự của bạn.</p>
+                          <div className="w-20 h-20 bg-hub-purple rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-hub-purple/40">
+                             <CheckCircle2 className="w-10 h-10 text-white" />
+                          </div>
+                          <h2 className="text-5xl font-black uppercase italic tracking-tighter text-gradient-cosmic">Ghi danh Thành công</h2>
+                          <p className="text-gray-400 font-bold uppercase tracking-[0.3em] text-[10px]">Cảm ơn bạn đã lựa chọn tin tưởng hệ thống The Hub Connect.</p>
                        </div>
 
-                       <div className="glass p-12 rounded-[3.5rem] border-hub-blue/20 bg-hub-blue/5 space-y-10 relative overflow-hidden group">
-                          <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-opacity"><Zap className="w-32 h-32 text-hub-blue" /></div>
-                          
-                          <div className="flex flex-col md:flex-row gap-12 items-center">
-                             <div className="bg-white p-5 rounded-[2.5rem] w-56 h-56 shadow-2xl relative z-10 flex-shrink-0">
-                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${hubPassCode}`} className="w-full h-full" referrerPolicy="no-referrer" />
+                       <div className="grid md:grid-cols-2 gap-12 text-left">
+                          <div className="space-y-8">
+                             <div className="space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 italic ml-4">Mã định danh (Hub-Pass)</label>
+                                <div className="p-6 glass rounded-2xl border-white/10 flex items-center justify-between group">
+                                   <span className="text-2xl font-black text-hub-purple tracking-tighter uppercase italic">{hubPassCode}</span>
+                                   <button 
+                                     onClick={() => {
+                                        navigator.clipboard.writeText(hubPassCode);
+                                        alert("Đã sao chép mã định danh!");
+                                     }}
+                                     className="p-3 glass rounded-xl hover:bg-white/10 transition-all opacity-40 group-hover:opacity-100"
+                                   >
+                                      <Copy className="w-4 h-4" />
+                                   </button>
+                                </div>
                              </div>
-                             
-                             <div className="text-left flex-1 space-y-6 relative z-10">
-                                <div className="space-y-1">
-                                   <div className="text-[10px] text-hub-blue font-black uppercase tracking-widest">Hub-Pass Định danh</div>
-                                   <div className="text-2xl font-mono font-black text-white tracking-widest leading-none">{hubPassCode}</div>
+
+                             <div className="space-y-4">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 italic ml-4">Tóm lược lịch trình</label>
+                                <div className="space-y-3">
+                                   {[
+                                     { label: "Mô hình", value: bookingData.roomName, icon: <Layout className="w-4 h-4" /> },
+                                     { label: "Concept", value: selectedConcept?.title, icon: <Sparkles className="w-4 h-4" /> },
+                                     { label: "Thời khắc", value: `${bookingData.date} @ ${bookingData.time}`, icon: <Calendar className="w-4 h-4" /> },
+                                   ].map((item, idx) => (
+                                      <div key={idx} className="flex items-center gap-4 p-4 glass rounded-2xl border-white/5 opacity-80">
+                                         <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-hub-blue">{item.icon}</div>
+                                         <div>
+                                            <div className="text-[8px] text-gray-500 uppercase font-black tracking-widest font-mono">{item.label}</div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-white leading-none mt-1">{item.value}</div>
+                                         </div>
+                                      </div>
+                                   ))}
                                 </div>
-                                
-                                <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5">
-                                   <div>
-                                      <div className="text-[8px] text-gray-500 font-black uppercase tracking-[0.2em] mb-1">Mô hình</div>
-                                      <div className="text-sm font-black uppercase text-white tracking-tighter">{bookingData.roomName}</div>
-                                   </div>
-                                   <div>
-                                      <div className="text-[8px] text-gray-500 font-black uppercase tracking-[0.2em] mb-1">Thời khắc</div>
-                                      <div className="text-sm font-black uppercase text-white tracking-tighter">{bookingData.date} | {bookingData.time}</div>
-                                   </div>
+                             </div>
+                          </div>
+
+                          <div className="flex flex-col items-center justify-center space-y-8 glass p-8 rounded-[3rem] border-white/10 bg-white/5 relative overflow-hidden">
+                             <div className="absolute top-0 right-0 w-32 h-32 bg-hub-blue/20 blur-[80px] -mr-16 -mt-16" />
+                             <div className="space-y-2 text-center relative z-10">
+                                <h4 className="text-xs font-black uppercase italic tracking-widest text-hub-blue font-mono">Hub-Pass QR</h4>
+                                <p className="text-[8px] text-gray-500 uppercase font-bold tracking-widest max-w-[140px]">Vui lòng trình mã này tại quầy lễ tân khi check-in.</p>
+                             </div>
+                             <div className="w-48 h-48 bg-white p-4 rounded-3xl shadow-2xl relative z-10">
+                                <img 
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${hubPassCode}`} 
+                                  className="w-full h-full object-contain"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-xl shadow-lg flex items-center justify-center border border-gray-100 p-1">
+                                   <div className="w-full h-full bg-hub-purple rounded-md" />
                                 </div>
-                                
-                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center gap-4">
-                                   <Info className="w-5 h-5 text-gray-500" />
-                                   <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">Vui lòng mang mã này đến The Hub để được kích hoạt quyền truy cập và nhận ưu đãi Teabreak.</p>
-                                </div>
+                             </div>
+                             <div className="pt-4 relative z-10">
+                               <span className="px-4 py-2 border border-white/10 rounded-full text-[8px] font-black uppercase tracking-[0.2em] text-gray-500">
+                                  Lượt check-in duy nhất
+                               </span>
                              </div>
                           </div>
                        </div>
 
-                       <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                       <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row gap-4">
                           <button 
-                             onClick={() => navigate("/dashboard")}
-                             className="px-12 py-5 glass border-white/10 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                            onClick={() => navigate("/events")}
+                            className="flex-1 py-5 glass border-white/10 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-hub-blue/10 hover:border-hub-blue transition-all"
                           >
-                             Dashboard Quân sư <ArrowRight className="w-4 h-4" />
+                             Khám phá Sự kiện khác
                           </button>
                           <button 
-                             onClick={() => window.location.reload()}
-                             className="px-12 py-5 bg-white text-hub-black rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-hub-blue hover:text-white transition-all shadow-2xl shadow-white/20"
+                             onClick={() => navigate("/")}
+                             className="flex-1 py-5 bg-white text-hub-black rounded-2xl font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all shadow-xl shadow-white/20 italic"
                           >
-                             Tiếp tục Book
+                             Về Trang chủ
                           </button>
                        </div>
                    </motion.div>
             )}
           </AnimatePresence>
 
-          {step <= 4 && (
-            <div className="mt-12 flex justify-between items-center">
-              {step > 1 && (
-                <button 
-                  onClick={prevStep}
-                  className="px-8 py-3 glass rounded-full font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition-all"
-                >
-                  Quay lại
-                </button>
-              )}
-              <div className="flex-1" />
+          {/* Navigation Controls */}
+          {step < 5 && (
+            <div className="flex justify-between items-center max-w-6xl mx-auto pt-12 border-t border-white/5 mt-12 pb-24">
               <button 
-                onClick={step === 4 ? handleCreateBooking : nextStep}
-                disabled={isSubmitting || (step === 4 && !paymentMethod)}
-                className="px-10 py-4 bg-gradient-to-r from-hub-purple to-hub-blue rounded-full font-bold text-xs uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2 group disabled:opacity-50 disabled:grayscale"
+                onClick={prevStep}
+                disabled={step === 1 || isSubmitting}
+                className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all disabled:opacity-0"
               >
-                {step === 4 ? (isSubmitting ? "Đang xử lý..." : "Xác nhận đặt hàng") : "Tiếp theo"} 
-                {!isSubmitting && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+                <ArrowRight className="w-5 h-5 rotate-180" />
+                <span>Quay lại</span>
               </button>
+              
+              {step < 4 ? (
+                <button 
+                  onClick={nextStep}
+                  className="flex items-center gap-6 group"
+                >
+                  <div className="text-right">
+                    <div className="text-[8px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Màn tiếp theo</div>
+                    <div className="text-sm font-black text-white uppercase tracking-widest italic">{step === 1 ? "Chọn Concept" : step === 2 ? "Lên lịch trình" : "Vào Đấu trường"}</div>
+                  </div>
+                  <div className="w-14 h-14 bg-hub-purple rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+                    <ArrowRight className="w-6 h-6 text-white" />
+                  </div>
+                </button>
+              ) : (
+                <div /> // Action button is inside step 4
+              )}
             </div>
           )}
         </div>
