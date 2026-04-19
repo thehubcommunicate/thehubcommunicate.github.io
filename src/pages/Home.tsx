@@ -1,234 +1,288 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
-import { Zap, Users, Lightbulb, Mic2, ArrowRight, ChevronRight, Globe, Layout, Cpu, Eye, Container, Maximize, Sparkles } from "lucide-react";
-import Navbar from "../components/Navbar";
+import { Zap, Users, ArrowRight, ChevronRight, ChevronDown, Sparkles, MapPin, Play, Clock, Trophy, User, Plus, Loader2 } from "lucide-react";
 import Footer from "../components/Footer";
-import { askHubAI } from "../lib/gemini";
+import { useAuth } from "../components/AuthProvider";
+import { signInWithGoogle } from "../lib/firebase";
 
-const Home = () => {
-  const navigate = useNavigate();
-  const [aiIdea, setAiIdea] = React.useState("");
-  const [isAiLoading, setIsAiLoading] = React.useState(false);
+const BackgroundVideo = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [opacity, setOpacity] = useState(0);
 
-  const getAiIdea = async () => {
-    setIsAiLoading(true);
-    const idea = await askHubAI("Gợi ý 1 ý tưởng sự kiện độc đáo, điên rồ và cực kỳ 'The Hub' cho sinh viên sáng tạo. Chỉ cần 2 câu ngắn gọn.");
-    setAiIdea(idea);
-    setIsAiLoading(false);
-  };
+  useEffect(() => {
+    let rafId: number;
+    const video = videoRef.current;
+    if (!video) return;
 
-  const highlights = [
-    { icon: <Container className="w-8 h-8" />, title: "Workshop Container", desc: "Sử dụng vật liệu tái chế, thùng phi và pallet gỗ sơn màu Neon cực chất." },
-    { icon: <Maximize className="w-8 h-8" />, title: "Không gian Đa năng", desc: "Nội thất linh hoạt, sàn bê tông mài với những câu Quote cảm hứng." },
-    { icon: <Eye className="w-8 h-8" />, title: "Góc AR Check-in", desc: "Quét mã để chiêm ngưỡng các tác phẩm 3D về tương lai ngay tại Hub." },
-  ];
+    const fadeDuration = 500; // 0.5s
 
-  const events = [
-    { title: "Workshop Sáng Tạo Gen Z", category: "Workshop", img: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=1200" },
-    { title: "Startup Networking Night", category: "Networking", img: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1200" },
-    { title: "Ra mắt sản phẩm Công nghệ", category: "Product Launch", img: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=1200" },
+    const updateFade = () => {
+      const currentTime = video.currentTime * 1000;
+      const duration = video.duration * 1000;
+
+      if (!duration) {
+        rafId = requestAnimationFrame(updateFade);
+        return;
+      }
+
+      let newOpacity = 1;
+      if (currentTime < fadeDuration) {
+        newOpacity = currentTime / fadeDuration;
+      } else if (currentTime > duration - fadeDuration) {
+        newOpacity = (duration - currentTime) / fadeDuration;
+      }
+
+      setOpacity(Math.max(0, Math.min(1, newOpacity)));
+      rafId = requestAnimationFrame(updateFade);
+    };
+
+    const handleEnded = () => {
+      setOpacity(0);
+      setTimeout(() => {
+        video.currentTime = 0;
+        video.play();
+      }, 100);
+    };
+
+    video.addEventListener('ended', handleEnded);
+    rafId = requestAnimationFrame(updateFade);
+
+    return () => {
+      video.removeEventListener('ended', handleEnded);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      muted
+      playsInline
+      style={{ opacity }}
+      className="absolute inset-0 w-full h-full object-cover transition-opacity duration-100 ease-linear"
+    >
+      <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_065045_c44942da-53c6-4804-b734-f9e07fc22e08.mp4" type="video/mp4" />
+    </video>
+  );
+};
+
+const LogoMarquee = () => {
+  const logos = [
+    { name: "Vortex", color: "bg-blue-500" },
+    { name: "Nimbus", color: "bg-purple-500" },
+    { name: "Prysma", color: "bg-pink-500" },
+    { name: "Cirrus", color: "bg-cyan-500" },
+    { name: "Kynder", color: "bg-amber-500" },
+    { name: "Halcyn", color: "bg-indigo-500" },
   ];
 
   return (
-    <div className="min-h-screen bg-hub-black text-white selection:bg-hub-purple selection:text-white">
-      <Navbar />
+    <div className="absolute bottom-10 left-0 right-0 z-20">
+      <div className="max-w-5xl mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-12">
+        <div className="text-foreground/50 text-[10px] font-bold uppercase tracking-[0.3em] whitespace-nowrap hidden lg:block leading-loose">
+          Mạng lưới kết nối <br /> sáng tạo & nghệ thuật
+        </div>
+        
+        <div className="flex-1 overflow-hidden relative">
+          <div className="flex gap-16 animate-marquee whitespace-nowrap">
+            {[...logos, ...logos].map((logo, i) => (
+              <div key={i} className="flex items-center gap-4 group">
+                <div className="w-12 h-12 rounded-xl liquid-glass flex items-center justify-center font-bold text-lg select-none">
+                  {logo.name[0]}
+                </div>
+                <span className="text-base font-semibold text-foreground tracking-tight group-hover:text-hub-blue transition-colors">
+                  {logo.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Home = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [activeNav, setActiveNav] = useState("");
+
+  const handleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-hub-black text-foreground selection:bg-hub-purple selection:text-white font-sans overflow-x-hidden">
       
-      {/* Hero Section */}
-      <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Video Background Placeholder */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-hub-black/60 z-10" />
-          <video 
-            autoPlay 
-            muted 
-            loop 
-            playsInline
-            className="w-full h-full object-cover opacity-60"
-            poster="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1920"
-          >
-            <source src="https://assets.mixkit.co/videos/preview/mixkit-people-attending-a-conference-in-a-large-hall-4841-large.mp4" type="video/mp4" />
-          </video>
+      {/* Hero Section Container */}
+      <section className="relative min-h-screen flex flex-col overflow-hidden">
+        
+        {/* JS Controlled Background Video */}
+        <div className="absolute inset-0 pointer-events-none">
+           <BackgroundVideo />
         </div>
 
-        <div className="container mx-auto px-6 relative z-20 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <span className="inline-block px-4 py-1 rounded-full glass text-[10px] font-bold tracking-[0.3em] uppercase mb-6 text-hub-blue border-hub-blue/30 select-none">
-              Flexible Event Space System
-            </span>
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 tracking-tight leading-[1.1] uppercase select-none">
-              The Hub – Nơi mọi kết nối <br />
-              <span className="text-gradient-cosmic">đều tạo nên giá trị</span>
-            </h1>
-            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-10 font-light leading-relaxed select-none">
-              Hệ thống không gian sự kiện đa năng dành cho Workshop, Networking, Training và Talkshow. 
-              Kết nối cộng đồng sáng tạo âm nhạc & điện ảnh.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button 
-                onClick={() => navigate("/booking")}
-                className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-hub-purple to-hub-blue rounded-full font-bold text-lg hover:scale-105 transition-transform glow-purple shadow-2xl shadow-hub-purple/40"
-              >
-                Đặt chỗ nhanh
-              </button>
-              <button 
-                onClick={() => navigate("/space")}
-                className="w-full sm:w-auto px-10 py-4 glass rounded-full font-bold text-lg hover:bg-white/10 transition-all border-white/20 flex items-center justify-center"
-              >
-                Khám phá không gian
-              </button>
-            </div>
-          </motion.div>
-        </div>
+        {/* Blurred overlay shape */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[984px] h-[527px] opacity-90 bg-[#050505] blur-[82px] pointer-events-none z-0" />
 
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50 z-20">
-          <motion.div 
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="w-px h-12 bg-gradient-to-b from-white to-transparent"
-          />
-        </div>
-      </section>
+        {/* Custom Hero Navbar */}
+        <nav className="relative z-20 w-full py-5 px-8 flex flex-row items-center justify-between">
+           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
+              <div className="w-8 h-8 bg-gradient-to-br from-hub-purple to-hub-blue rounded-lg flex items-center justify-center">
+                 <Zap className="w-5 h-5 text-white fill-white" />
+              </div>
+              <span className="text-xl font-black tracking-tighter uppercase font-general">The Hub</span>
+           </div>
 
-      {/* Quick About */}
-      <section className="py-24 relative overflow-hidden bg-white/2">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <span className="text-hub-purple font-bold tracking-widest uppercase text-xs mb-4 block">Về chúng tôi</span>
-              <h2 className="text-4xl md:text-5xl font-bold mb-8 leading-tight">
-                Kết nối âm nhạc & điện ảnh <br />
-                <span className="text-gradient-cosmic">trong không gian hiện đại</span>
-              </h2>
-              <p className="text-gray-400 text-lg mb-10 leading-relaxed">
-                The Hub không chỉ là nơi cho thuê không gian, mà là một hệ sinh thái kết nối những tâm hồn sáng tạo. 
-                Chúng tôi tập trung vào việc tạo ra những điểm chạm giá trị giữa các nghệ sĩ, nhà làm phim và cộng đồng yêu nghệ thuật.
-              </p>
-              <button 
-                onClick={() => navigate("/about")}
-                className="px-8 py-3 glass rounded-full font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all"
-              >
-                Tìm hiểu thêm
-              </button>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Highlights */}
-      <section className="py-24">
-        <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-3 gap-8">
-            {highlights.map((h, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.2 }}
-                className="glass p-10 rounded-[3rem] border-white/5 hover:border-hub-purple/50 transition-all group"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-hub-purple/10 flex items-center justify-center mb-8 text-hub-purple group-hover:bg-hub-purple group-hover:text-white transition-all">
-                  {h.icon}
-                </div>
-                <h3 className="text-2xl font-bold mb-4">{h.title}</h3>
-                <p className="text-gray-500 leading-relaxed">{h.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Events Slider (Simplified) */}
-      <section className="py-24 bg-white/2 overflow-hidden">
-        <div className="container mx-auto px-6">
-          <div className="flex justify-between items-end mb-16">
-            <div>
-              <h2 className="text-4xl font-bold mb-4">Sự Kiện Tiêu Biểu</h2>
-              <p className="text-gray-400">Những khoảnh khắc ấn tượng tại The Hub.</p>
-            </div>
-            <button 
-              onClick={() => navigate("/events")}
-              className="text-hub-blue font-bold flex items-center gap-2 hover:translate-x-2 transition-transform uppercase text-xs tracking-widest"
-            >
-              Xem tất cả <ArrowRight className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="flex gap-8 overflow-x-auto pb-12 no-scrollbar">
-            {events.map((e, i) => (
-              <motion.div 
-                key={i}
-                className="min-w-[300px] md:min-w-[400px] aspect-[4/5] rounded-[2.5rem] overflow-hidden relative group cursor-pointer"
-                onClick={() => navigate("/events")}
-              >
-                <img src={e.img} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
-                <div className="absolute inset-0 bg-gradient-to-t from-hub-black to-transparent flex flex-col justify-end p-8">
-                  <span className="text-[10px] font-bold text-hub-blue uppercase tracking-widest mb-2">{e.category}</span>
-                  <h4 className="text-2xl font-bold mb-2">{e.title}</h4>
-                  <div className="flex items-center gap-2 text-hub-purple font-bold text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                    Xem chi tiết <ChevronRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* AI Inspiration Section */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-hub-blue/5 to-transparent" />
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="glass p-12 md:p-20 rounded-[4rem] border-white/5 flex flex-col items-center text-center">
-            <div className="w-20 h-20 rounded-3xl bg-hub-purple/20 flex items-center justify-center text-hub-purple mb-8 animate-pulse">
-              <Sparkles className="w-10 h-10" />
-            </div>
-            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-6">
-              Bạn đang thiếu <span className="text-hub-blue italic">Cảm hứng?</span>
-            </h2>
-            <p className="text-gray-400 max-w-xl mx-auto mb-10 font-bold uppercase text-[10px] tracking-widest leading-relaxed">
-              Hãy để trí tuệ nhân tạo Hub-AI gợi ý cho bạn những ý tưởng sự kiện đột phá nhất ngay bây giờ.
-            </p>
-            
-            <div className="min-h-[100px] flex items-center justify-center mb-10">
-              {isAiLoading ? (
-                <div className="flex gap-2">
-                  <div className="w-2 h-2 rounded-full bg-hub-blue animate-bounce" />
-                  <div className="w-2 h-2 rounded-full bg-hub-blue animate-bounce [animation-delay:-0.15s]" />
-                  <div className="w-2 h-2 rounded-full bg-hub-blue animate-bounce [animation-delay:-0.3s]" />
-                </div>
-              ) : aiIdea ? (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="p-8 glass bg-white/5 rounded-3xl border-none italic font-medium text-lg text-hub-blue"
+           <div className="hidden lg:flex items-center gap-10">
+              {[
+                { name: "Không gian", hasChevron: true, path: "/space" },
+                { name: "Sự kiện", hasChevron: false, path: "/events" },
+                { name: "Cộng đồng", hasChevron: false, path: "/community" },
+                { name: "Thành viên", hasChevron: true, path: "/about" }
+              ].map((item) => (
+                <button 
+                  key={item.name}
+                  onClick={() => item.path && navigate(item.path)}
+                  className="flex items-center gap-1.5 text-foreground/90 font-medium text-sm hover:text-white transition-colors group"
                 >
-                  "{aiIdea}"
-                </motion.div>
-              ) : (
-                <div className="text-gray-600 italic">Nhấn nút bên dưới để bắt đầu...</div>
-              )}
-            </div>
+                  {item.name}
+                  {item.hasChevron && <ChevronDown className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />}
+                </button>
+              ))}
+           </div>
 
-            <button 
-              onClick={getAiIdea}
-              disabled={isAiLoading}
-              className="px-12 py-4 bg-hub-purple rounded-full font-black uppercase tracking-widest text-[10px] glow-purple hover:scale-110 transition-all flex items-center gap-3 disabled:opacity-50"
-            >
-              <Zap className="w-4 h-4 fill-white" /> Khởi tạo ý tưởng ngay
-            </button>
-          </div>
+           <div>
+              {user ? (
+                <button 
+                  onClick={() => navigate("/dashboard")}
+                  className="px-6 py-2.5 rounded-full liquid-glass text-sm font-semibold hover:bg-white/5 transition-all flex items-center gap-2"
+                >
+                  <img src={user.photoURL || ""} className="w-6 h-6 rounded-full" />
+                  Tài khoản
+                </button>
+              ) : (
+                <button 
+                  onClick={handleLogin}
+                  className="px-6 py-2.5 rounded-full liquid-glass text-sm font-semibold hover:bg-white/5 transition-all text-foreground/90"
+                >
+                  Đăng ký
+                </button>
+              )}
+           </div>
+
+           {/* Gradient Divider */}
+           <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-foreground/20 to-transparent mt-[3px]" />
+        </nav>
+
+        {/* Hero Main Content */}
+        <div className="relative z-10 flex-1 flex items-center justify-center px-6">
+           <div className="text-center max-w-6xl w-full">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                className="relative"
+              >
+                 {/* Decorative Glow Backdrop for Title */}
+                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-r from-hub-purple/10 via-hub-blue/10 to-hub-magenta/10 blur-[120px] pointer-events-none -z-10" />
+
+                 <h1 className="font-general font-normal text-[80px] md:text-[180px] leading-[0.95] tracking-[-0.06em] select-none text-foreground flex flex-col lg:flex-row items-center justify-center uppercase">
+                    <span className="drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">The Hub&nbsp;</span>
+                    <motion.span 
+                       animate={{ 
+                         filter: ["hue-rotate(0deg)", "hue-rotate(20deg)", "hue-rotate(0deg)"] 
+                       }}
+                       transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                       className="relative inline-block bg-clip-text text-transparent bg-gradient-to-br from-hub-blue via-hub-purple via-hub-purple to-hub-magenta italic drop-shadow-[0_10px_40px_rgba(168,85,247,0.3)] px-4"
+                    >
+                       Connect
+                       {/* Animated underline for "Connect" */}
+                       <motion.div 
+                         initial={{ scaleX: 0 }}
+                         animate={{ scaleX: 1 }}
+                         transition={{ delay: 1, duration: 1.5, ease: "circOut" }}
+                         className="absolute -bottom-2 left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-hub-purple to-transparent rounded-full opacity-50" 
+                       />
+                    </motion.span>
+                 </h1>
+                 
+                 <div className="mt-12 flex flex-col items-center">
+                    <p className="text-hero-sub text-lg md:text-xl leading-relaxed max-w-2xl mx-auto opacity-70 font-medium px-4 tracking-tight">
+                       Nơi mọi kết nối đều tạo nên giá trị. <br className="hidden md:block" />
+                       Hệ thống không gian sự kiện linh hoạt cho cộng đồng sáng tạo & nghệ thuật.
+                    </p>
+                    
+                    <button 
+                      onClick={() => navigate("/booking")}
+                      className="mt-[35px] px-[32px] py-[22px] rounded-full liquid-glass font-bold text-sm uppercase tracking-[0.2em] hover:scale-105 transition-all group"
+                    >
+                      <span className="relative z-10 flex items-center gap-3">
+                        Đặt chỗ ngay <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </span>
+                    </button>
+                 </div>
+              </motion.div>
+           </div>
         </div>
+
+        {/* Bottom Logo Marquee */}
+        <LogoMarquee />
       </section>
+
+      {/* Rest of Content - Kept original styles but with new background */}
+      <div className="bg-background">
+        {/* Highlights */}
+        <section className="py-32 relative overflow-hidden">
+          <div className="container mx-auto px-6">
+            <div className="grid md:grid-cols-3 gap-12">
+              {[
+                { icon: <Zap className="w-8 h-8" />, title: "Workshop Container", desc: "Vật liệu tái chế, đèn Neon & vibe Startup rực rỡ." },
+                { icon: <Users className="w-8 h-8" />, title: "Mạng lưới Kết nối", desc: "Hàng ngàn sinh viên & Mentor hội tụ mỗi ngày." },
+                { icon: <Sparkles className="w-8 h-8" />, title: "AI Inspiration", desc: "Công cụ gợi ý ý tưởng sự kiện độc bá từ Hub-AI." },
+              ].map((h, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.2 }}
+                  className="p-10 rounded-[3rem] liquid-glass group hover:bg-white/5 transition-all"
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-hub-purple/10 flex items-center justify-center mb-8 text-hub-purple group-hover:bg-hub-purple group-hover:text-white transition-all">
+                    {h.icon}
+                  </div>
+                  <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-4">{h.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{h.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Featured Section */}
+        <section className="py-24 bg-white/[0.02]">
+           <div className="container mx-auto px-6 text-center">
+              <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-8">Nơi Ý Tưởng Trở Thành Hiện Thực</h2>
+              <div className="max-w-4xl mx-auto space-y-8">
+                 <p className="text-gray-400 text-lg leading-relaxed">
+                    The Hub không chỉ là một địa điểm. Nó là một thực thể sống, nơi mỗi pallet gỗ, mỗi vách ngăn sắt đều mang trong mình hơi thở của sự sáng tạo. 
+                    Chúng tôi kiến tạo không gian để bạn kiến tạo tương lai.
+                 </p>
+                 <div className="flex justify-center gap-6">
+                    <button onClick={() => navigate("/events")} className="px-10 py-4 bg-hub-blue text-white rounded-full font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform">Đấu trường Sự kiện</button>
+                    <button onClick={() => navigate("/about")} className="px-10 py-4 liquid-glass rounded-full font-black uppercase tracking-widest text-xs">Về chúng tôi</button>
+                 </div>
+              </div>
+           </div>
+        </section>
+      </div>
 
       <Footer />
     </div>

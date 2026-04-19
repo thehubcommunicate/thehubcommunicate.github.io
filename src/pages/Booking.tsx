@@ -121,6 +121,8 @@ const Booking = () => {
       const data = snap.data();
       setBookingId(res.id);
       setQrPass(data?.qrPass || "");
+      setHubPassCode(data?.qrPass || `HUB-${res.id.slice(0, 5)}`);
+      setIsBookingDone(true);
       setStep(5); // Success step
     } catch (error) {
       console.error("Booking error", error);
@@ -620,7 +622,7 @@ const Booking = () => {
                                  initial={{ opacity: 0, scale: 0.95 }}
                                  animate={{ opacity: 1, scale: 1 }}
                                  className="glass p-12 rounded-[4rem] border-hub-magenta/20 bg-gradient-to-br from-hub-magenta/5 to-transparent flex flex-col items-center text-center justify-center h-full sticky top-32"
-                               >
+                                >
                                   <div className="w-24 h-24 bg-hub-magenta/20 rounded-[2rem] flex items-center justify-center mb-10 shadow-[0_0_40px_rgba(217,70,239,0.3)]">
                                      <Wallet className="w-12 h-12 text-hub-magenta" />
                                   </div>
@@ -659,7 +661,17 @@ const Booking = () => {
                       </div>
                    </>
                 ) : (
+                   <div className="text-center py-20">
+                      <Loader2 className="w-12 h-12 animate-spin text-hub-blue mx-auto mb-6" />
+                      <p className="text-lg font-bold uppercase tracking-widest">Đang khởi tạo mã định danh...</p>
+                   </div>
+                )}
+              </motion.div>
+            )}
+
+            {step === 5 && (
                    <motion.div 
+                     key="step5"
                      initial={{ opacity: 0, scale: 0.9 }}
                      animate={{ opacity: 1, scale: 1 }}
                      className="max-w-2xl mx-auto text-center space-y-12 py-12"
@@ -676,7 +688,7 @@ const Booking = () => {
                        </div>
 
                        <div className="space-y-4">
-                          <h2 className="text-6xl font-black uppercase italic tracking-tighter text-gradient-cosmic">Ghi danh Đấu trường xong!</h2>
+                          <h2 className="text-6xl font-black uppercase italic tracking-tighter text-gradient-cosmic leading-tight">Ghi danh Đấu trường thành công!</h2>
                           <p className="text-gray-500 text-xs font-bold uppercase tracking-[0.3em]">Hệ thống đã phê duyệt tư cách tham dự của bạn.</p>
                        </div>
 
@@ -691,7 +703,7 @@ const Booking = () => {
                              <div className="text-left flex-1 space-y-6 relative z-10">
                                 <div className="space-y-1">
                                    <div className="text-[10px] text-hub-blue font-black uppercase tracking-widest">Hub-Pass Định danh</div>
-                                   <div className="text-2xl font-mono font-black text-white tracking-widest">{hubPassCode}</div>
+                                   <div className="text-2xl font-mono font-black text-white tracking-widest leading-none">{hubPassCode}</div>
                                 </div>
                                 
                                 <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5">
@@ -728,8 +740,6 @@ const Booking = () => {
                           </button>
                        </div>
                    </motion.div>
-                )}
-              </motion.div>
             )}
           </AnimatePresence>
 
@@ -745,9 +755,9 @@ const Booking = () => {
               )}
               <div className="flex-1" />
               <button 
-                onClick={nextStep}
-                disabled={isSubmitting}
-                className="px-10 py-4 bg-gradient-to-r from-hub-purple to-hub-blue rounded-full font-bold text-xs uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2 group"
+                onClick={step === 4 ? handleCreateBooking : nextStep}
+                disabled={isSubmitting || (step === 4 && !paymentMethod)}
+                className="px-10 py-4 bg-gradient-to-r from-hub-purple to-hub-blue rounded-full font-bold text-xs uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-2 group disabled:opacity-50 disabled:grayscale"
               >
                 {step === 4 ? (isSubmitting ? "Đang xử lý..." : "Xác nhận đặt hàng") : "Tiếp theo"} 
                 {!isSubmitting && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}

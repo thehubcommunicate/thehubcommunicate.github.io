@@ -25,11 +25,8 @@ const Navbar = () => {
       try {
         await signInWithGoogle();
       } catch (error: any) {
-        if (error.code === 'auth/popup-blocked') {
-          alert("Trình duyệt đã chặn cửa sổ đăng nhập. Vui lòng nhấn vào nút 'Mở trong tab mới' phía trên cùng bên phải để đăng nhập ổn định hơn.");
-        } else {
-          console.error("Login failed", error);
-        }
+        // Errors are now thrown as Error objects with descriptive messages from firebase.ts
+        alert(error.message || "Đã có lỗi xảy ra khi đăng nhập. Vui lòng kiểm tra console hoặc thử lại.");
       }
     }
   };

@@ -38,11 +38,18 @@ export const signInWithGoogle = async () => {
     return user;
   } catch (error: any) {
     if (error.code === 'auth/popup-blocked') {
-      console.warn("Sign-in popup was blocked by the browser. This is common in iframe environments. Please try opening the app in a new tab.");
+      const msg = "Sign-in popup bị chặn! Vui lòng nhấn vào biểu tượng 'Mở trong tab mới' (góc trên bên phải) để đăng nhập, hoặc cho phép popup từ trình duyệt.";
+      console.warn(msg);
+      throw new Error(msg);
+    } else if (error.code === 'auth/unauthorized-domain') {
+      const currentDomain = window.location.hostname;
+      const msg = `Tên miền '${currentDomain}' chưa được cấp phép trong Firebase Console. \n\nCÁCH FIX: \n1. Truy cập Firebase Console -> Authentication -> Settings -> Authorized Domains. \n2. Thêm domain '${currentDomain}' vào danh sách.`;
+      console.error(msg);
+      throw new Error(msg);
     } else {
       console.error("Error signing in with Google:", error);
+      throw error;
     }
-    throw error;
   }
 };
 

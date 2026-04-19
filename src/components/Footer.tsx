@@ -39,7 +39,7 @@ const Footer = () => {
           <div>
             <h4 className="font-bold mb-6 uppercase tracking-widest text-xs text-gray-400">Liên hệ</h4>
             <ul className="space-y-4 text-sm text-gray-500">
-              <li className="flex items-center gap-3"><MapPin className="w-4 h-4 text-hub-blue" /> 123 Đường Sáng Tạo, Quận 1, TP.HCM</li>
+              <li className="flex items-center gap-3"><MapPin className="w-4 h-4 text-hub-blue" /> Xã Nghĩa Trụ, Văn Giang, Hưng Yên</li>
               <li className="flex items-center gap-3"><Phone className="w-4 h-4 text-hub-blue" /> +84 900 123 456</li>
               <li className="flex items-center gap-3"><Mail className="w-4 h-4 text-hub-blue" /> hello@thehub.vn</li>
             </ul>

@@ -101,6 +101,7 @@
         "interestedCount": { "type": "number" },
         "attendeeCount": { "type": "number" },
         "price": { "type": "string" },
+        "category": { "type": "string", "enum": ["Trải nghiệm giáo dục", "Ra mắt sản phẩm", "Hoạt động cộng đồng & Khác"] },
         "isHot": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
