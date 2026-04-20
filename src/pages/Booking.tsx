@@ -25,26 +25,38 @@ const BUDGET_TIERS = [
 ];
 
 const EVENT_TYPES = [
-  { id: "education", name: "Trải nghiệm giáo dục", icon: <BookOpen className="w-5 h-5" />, desc: "Workshop, Talkshow, Seminar" },
-  { id: "launch", name: "Ra mắt sản phẩm", icon: <Zap className="w-5 h-5" />, desc: "Showcase, Pop-up, Exhibition" },
-  { id: "community", name: "Hoạt động cộng đồng", icon: <Users className="w-5 h-5" />, desc: "Networking, Offline, Gathering" },
+  { id: "education", name: "Trải nghiệm giáo dục (Thuyết trình)", icon: <BookOpen className="w-5 h-5" />, desc: "Tổ chức các buổi thuyết trình, chia sẻ kiến thức" },
+  { id: "launch", name: "Tổ chức sự kiện ra mắt sản phẩm", icon: <Zap className="w-5 h-5" />, desc: "Setup và vận hành sự kiện launch sản phẩm" },
+  { id: "birthday", name: "Tổ chức sự kiện sinh nhật", icon: <Star className="w-5 h-5" />, desc: "Khách mời, MC/Nhân vật đặc biệt, Dụng cụ tổ chức" },
+  { id: "other", name: "Tổ chức hoạt động khác", icon: <Users className="w-5 h-5" />, desc: "Câu lạc bộ, cộng đồng, workshop..." },
+  { id: "premium", name: "Premium Custom Event", icon: <Trophy className="w-5 h-5" />, desc: "Thiết kế & vận hành theo yêu cầu riêng biệt" },
 ];
 
 const CONCEPTS: Record<string, ConceptTemplate[]> = {
   education: [
-    { id: "edu-ess", title: "Minimalist Learner", tier: "essential", basePrice: 1500000, description: "Không gian tinh gọn tập trung vào truyền tải kiến thức.", image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80", features: ["Âm thanh cơ bản", "Máy chiếu HD", "Nước uống tiêu chuẩn"] },
-    { id: "edu-std", title: "Academy Professional", tier: "standard", basePrice: 4500000, description: "Mô hình học viện chuyên nghiệp với hỗ trợ kỹ thuật tận tâm.", image: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80", features: ["Teabreak nhẹ", "Sắp xếp bàn chữ U", "Hỗ trợ kỹ thuật 1-1", "Bảng tương tác"] },
-    { id: "edu-pre", title: "Scholar Summit", tier: "premium", basePrice: 12000000, description: "Hội nghị thượng đỉnh với trải nghiệm tri thức cao cấp nhất.", image: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&q=80", features: ["Thực đơn buffet cao cấp", "Livestream đa góc quay", "Thi công backdrop riêng", "Hệ thống LED P2.5"] },
+    { id: "edu-ess", title: "Standard Presentation", tier: "essential", basePrice: 2000000, description: "Không gian thuyết trình cơ bản, đầy đủ trang thiết bị.", image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80", features: ["Âm thanh cơ bản", "Máy chiếu HD", "Nước suối"] },
+    { id: "edu-std", title: "Pro Workshop", tier: "standard", basePrice: 3500000, description: "Mô hình workshop chuyên nghiệp với hỗ trợ kỹ thuật.", image: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80", features: ["Teabreak nhẹ", "Sắp xếp bàn chữ U", "Micro không dây"] },
+    { id: "edu-pre", title: "Academy Summit", tier: "premium", basePrice: 5000000, description: "Hội nghị giáo dục cao cấp với trải nghiệm tối ưu.", image: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&q=80", features: ["Buffet nhẹ", "Livestream cơ bản", "Hỗ trợ kỹ thuật 1-1"] },
   ],
   launch: [
-    { id: "lau-ess", title: "Basic Showcase", tier: "essential", basePrice: 2000000, description: "Giải pháp nhanh gọn để đưa sản phẩm đến khách hàng.", image: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80", features: ["Bục trưng bày", "Đèn spotlight đơn", "Wifi tốc độ cao"] },
-    { id: "lau-std", title: "Creative Pop-up", tier: "standard", basePrice: 6500000, description: "Không gian trưng bày sáng tạo mang dấu ấn thương hiệu.", image: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80", features: ["Khu vực check-in photo", "Teabreak bánh ngọt", "Hệ thống âm thanh PA", "Standee thiết kế"] },
-    { id: "lau-pre", title: "Runway Sáng Tạo", tier: "premium", basePrice: 18000000, description: "Concept chuyển tải tinh thần thời trang và nghệ thuật đỉnh cao.", image: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80", features: ["Màn hình LED full-size", "Quay phim Event Highlight", "Đèn Moving Head", "Canapé & Wine"] },
+    { id: "lau-ess", title: "Basic Launch", tier: "essential", basePrice: 1500000, description: "Giải pháp nhanh gọn để giới thiệu sản phẩm.", image: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80", features: ["Bục trưng bày", "Wifi tốc độ cao", "Standee cơ bản"] },
+    { id: "lau-std", title: "Creative Showcase", tier: "standard", basePrice: 2500000, description: "Không gian trưng bày sáng tạo mang đậm dấu ấn thương hiệu.", image: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80", features: ["Hệ thống đèn spotlight", "Khu vực check-in", "Âm thanh PA"] },
+    { id: "lau-pre", title: "Grand Reveal", tier: "premium", basePrice: 4000000, description: "Sự kiện ra mắt hoành tráng với vận hành chuyên nghiệp.", image: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80", features: ["Màn hình LED", "Quay phim highlight", "Tiệc Teabreak cao cấp"] },
   ],
-  community: [
-    { id: "com-ess", title: "Hub Connect", tier: "essential", basePrice: 1000000, description: "Nơi gặp gỡ, kết nối cộng đồng một cách thân mật.", image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80", features: ["Không gian mở", "Nước uống", "Boardgame"] },
-    { id: "com-std", title: "Modern Vibe", tier: "standard", basePrice: 3500000, description: "Buổi offline ấm cúng với những tiện ích hiện đại.", image: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&q=80", features: ["Finger food", "Trang trí bong bóng", "Karaoke/Music System"] },
-    { id: "com-pre", title: "Gala Night", tier: "premium", basePrice: 10000000, description: "Đêm tiệc kết nối hoành tráng và đáng nhớ.", image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80", features: ["Tiệc tối Buffet", "MC chuyên nghiệp", "Nhiếp ảnh gia đồng hành", "Phần thưởng Hub-Coin"] },
+  birthday: [
+    { id: "bir-ess", title: "Cozy Birthday", tier: "essential", basePrice: 1000000, description: "Tiệc sinh nhật ấm cúng cho nhóm nhỏ.", image: "https://images.unsplash.com/photo-1530103862676-fa8c9d34dbad?auto=format&fit=crop&q=80", features: ["Trang trí cơ bản", "Hệ thống loa Bluetooth", "Nước uống"] },
+    { id: "bir-std", title: "Party Vibe", tier: "standard", basePrice: 1700000, description: "Buổi tiệc sinh nhật năng động với âm thanh ánh sáng.", image: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&q=80", features: ["Gói decor chủ đề", "Karaoke system", "Bánh kem Hub-Style"] },
+    { id: "bir-pre", title: "VIP Celebration", tier: "premium", basePrice: 2500000, description: "Trải nghiệm sinh nhật đẳng cấp với nhân vật đặc biệt.", image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80", features: ["MC điều phối", "Chụp ảnh sự kiện", "Quà tặng riêng từ The Hub"] },
+  ],
+  other: [
+    { id: "oth-ess", title: "Hub Gathering", tier: "essential", basePrice: 4000000, description: "Gặp mặt cộng đồng, câu lạc bộ thân mật.", image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80", features: ["Sắp xếp linh hoạt", "Wifi 6", "Nước uống"] },
+    { id: "oth-std", title: "Active Workshop", tier: "standard", basePrice: 5500000, description: "Hoạt động workshop sáng tạo với đầy đủ dụng cụ.", image: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&q=80", features: ["Vật liệu sáng tạo", "Catering nhẹ", "Màn hình tương tác"] },
+    { id: "oth-pre", title: "Community Fest", tier: "premium", basePrice: 7000000, description: "Sự kiện cộng đồng quy mô với hỗ trợ toàn diện.", image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80", features: ["Quảng bá trên nền tảng Hub", "Livestream", "Hệ thống loa công suất lớn"] },
+  ],
+  premium: [
+    { id: "pre-ess", title: "Custom Essential", tier: "essential", basePrice: 10000000, description: "Thiết kế concept riêng cho sự kiện quy mô vừa.", image: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&q=80", features: ["Concept sáng tạo riêng", "Lên kịch bản chi tiết", "Setup không gian"] },
+    { id: "pre-std", title: "Executive Custom", tier: "standard", basePrice: 15000000, description: "Tổ chức trọn gói cho doanh nghiệp và branding event.", image: "https://images.unsplash.com/photo-1505373633560-fa3a194602bb?auto=format&fit=crop&q=80", features: ["Điều phối nhân sự (MC, Kỹ thuật)", "Hệ thống LED chuyên nghiệp", "Hậu kỳ video highlight"] },
+    { id: "pre-pre", title: "Elite Masterpiece", tier: "premium", basePrice: 20000000, description: "Showcase/Gala đẳng cấp nhất với vận hành hoàn hảo.", image: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80", features: ["Vận hành full-service", "Brand experience design", "Performer cao cấp"] },
   ]
 };
 
