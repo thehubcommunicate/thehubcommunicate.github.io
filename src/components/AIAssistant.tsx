@@ -45,17 +45,27 @@ const AIAssistant = () => {
 
     const response = await askHubAI(userMessage, history);
     
-    // Clean JSON from response if exists
+    // Improved JSON extraction for Gemini responses
     let cleanResponse = response;
     let recPackageId = null;
     try {
-      const jsonMatch = response.match(/\{[\s\S]*?\}/);
-      if (jsonMatch) {
-         const data = JSON.parse(jsonMatch[0]);
-         if (data.action === "recommend" && data.packageId) {
-            recPackageId = data.packageId;
+      // Find the LAST JSON block (most likely the recommendation)
+      const matches = response.match(/\{[\s\S]*?\}/g);
+      if (matches) {
+         // Try to find the recommendation JSON
+         for (const match of matches) {
+           try {
+              const data = JSON.parse(match);
+              if (data.action === "recommend" && data.packageId) {
+                 recPackageId = data.packageId;
+              }
+           } catch (e) {}
          }
-         cleanResponse = response.replace(/```json[\s\S]*?```|```[\s\S]*?```|\{[\s\S]*?\}/g, "").trim();
+         // Strip all JSON/Markdown blocks for display, being careful with greedy matching if needed
+         // We use a cleaner approach: remove anything that looks like a markdown block or a standalone JSON
+         cleanResponse = response.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, "")
+                                 .replace(/\{"action":\s*"recommend"[\s\S]*?\}/g, "")
+                                 .trim();
       }
     } catch (e) {}
 

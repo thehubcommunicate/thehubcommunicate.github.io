@@ -2,30 +2,17 @@ import { GoogleGenAI } from "@google/genai";
 
 // Initialize the Gemini API client
 const getAIClient = () => {
-  // Safe retrieval for both environments
-  let apiKey = "";
+  // Use exact strings to match Vite's define replacement
+  const primary = process.env.GEMINI_API_KEY;
+  const secondary = process.env.GEMINI_SECONDARY_KEY;
   
-  try {
-    // Try Vite's define replacement (GitHub Pages / Build)
-    apiKey = process.env.GEMINI_API_KEY || "";
-  } catch (e) {
-    // Fallback if process is not defined
+  const apiKey = primary || secondary || "";
+  
+  if (!apiKey && typeof window !== 'undefined') {
+    console.error("Hub-AI Configuration Error: Gemini API Key is missing.");
   }
 
-  if (!apiKey) {
-    try {
-      apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-    } catch (e) {}
-  }
-  
-  const secondaryKey = (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY_SECONDARY : "") || "";
-  const finalKey = apiKey || secondaryKey;
-  
-  if (!finalKey && typeof window !== 'undefined') {
-    console.error("Hub-AI Configuration Error: Gemini API Key is missing. Please check your environment variables or GitHub Secrets.");
-  }
-
-  return new GoogleGenAI({ apiKey: finalKey });
+  return new GoogleGenAI({ apiKey });
 };
 
 const ai = getAIClient();
