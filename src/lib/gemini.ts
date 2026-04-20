@@ -17,33 +17,20 @@ const getAIClient = () => {
 const ai = getAIClient();
 
 export const HUB_AI_SYSTEM_INSTRUCTION = `
-You are "Hub-AI", the intelligent concierge for "The Hub".
-Your goal is to help users select the right event package and organize their booking.
+You are "Hub-AI", the fast concierge for "The Hub". Be concise.
+PRICING:
+1. EDU: 2M-5M VNĐ (Workshop/Talkshow)
+2. LAUNCH: 1.5M-4M VNĐ (Product Launch)
+3. BIRTHDAY: 1M-2.5M VNĐ (Party/Birthday)
+4. OTHER: 4M-7M VNĐ (Community/Club)
+5. PREMIUM: 10M-20M VNĐ (Branding/Showcase)
 
-PRICING & SERVICES CONTEXT:
-1. Trải nghiệm giáo dục (Thuyết trình): 2.000.000 - 5.000.000 VNĐ. (Workshop, Talkshow, Seminar)
-2. Tổ chức sự kiện ra mắt sản phẩm: 1.500.000 - 4.000.000 VNĐ. (Setup, vận hành launch)
-3. Tổ chức sự kiện sinh nhật: 1.000.000 - 2.500.000 VNĐ. (Khách mời, MC, trang trí)
-4. Tổ chức hoạt động khác (Cộng đồng, Workshop CLB): 4.000.000 - 7.000.000 VNĐ.
-5. Premium Custom Event (Gói chuyên sâu): 10.000.000 - 20.000.000 VNĐ. (Branding event, Mini concert, Showcase)
+AREAS: The Nest (5-10p), Creative Hall (20-40p), Grand Hub (50-100p).
 
-AREAS:
-- The Nest (5-10 people): Small meetings, study groups.
-- The Creative Hall (20-40 people): Workshops, training.
-- The Grand Hub (50-100 people): Large events, LED screen, stage.
-
-GUIDELINES:
-1. If a user asks for a recommendation/suggestion for booking (gợi ý đặt hàng/chọn gói/phân vân), follow this process:
-   - Identify their event type (Workshop, Launch, Birthday, etc.)
-   - Identify their scale (small, medium, large) and budget level.
-   - Map it to one of our categories (Education, Launch, Birthday, Other, or Premium Custom).
-   - Be specific: "Với mục tiêu của bạn, tôi gợi ý gói 'Tổ chức sự kiện ra mắt sản phẩm' (Gói Standard) với mức giá khoảng 2.500.000đ để đảm bảo hiệu ứng media tốt nhất."
-   - CRITICAL: When you make a clear recommendation for a package, conclude your message with a JSON block in this format (hidden from plain text view if possible, but standard Markdown is fine). ALWAYS offer to let the user "pay now" via the magic button that will appear.
-     
-     { "action": "recommend", "packageId": "edu-experience" | "product-launch" | "birthday-event" | "other-activity" | "premium-custom" }
-     
-2. Suggest the best rooms based on user needs.
-3. Help users brainstorm event ideas or setup layouts.
+RESPONSE RULE:
+- For booking suggestions: Recommend a category and conclude with: {"action": "recommend", "packageId": "ID"}.
+- IDs: edu-experience, product-launch, birthday-event, other-activity, premium-custom.
+- Example: "Với 25 người sinh nhật giá rẻ, bạn nên chọn gói 'Birthday Event' tại Creative Hall. GIÁ: ~2M VNĐ. {"action": "recommend", "packageId": "birthday-event"}"
 `;
 
 export async function askHubAI(prompt: string, history: { role: "user" | "model", parts: [{ text: string }] }[] = []) {
@@ -56,13 +43,27 @@ export async function askHubAI(prompt: string, history: { role: "user" | "model"
       ],
       config: {
         systemInstruction: HUB_AI_SYSTEM_INSTRUCTION,
+        temperature: 0.7,
+        maxOutputTokens: 500, // Keep it fast
       },
     });
 
-    return response.text || "I'm sorry, I couldn't process that request.";
-  } catch (error) {
+    if (!response.text) {
+      throw new Error("Empty response from AI");
+    }
+
+    return response.text;
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return "The Hub's digital brain is resting. Please try again in a moment.";
+    
+    // Detailed error for debugging live on GitHub Pages
+    const errorMessage = error?.message || "Unknown Connection Error";
+    
+    if (errorMessage.includes("API_KEY_INVALID")) {
+      return "Hub-AI: Lỗi API Key không hợp lệ. Hãy kiểm tra lại GitHub Secrets.";
+    }
+    
+    return `The Hub's digital brain is resting. (Lỗi: ${errorMessage})`;
   }
 }
 

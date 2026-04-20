@@ -37,8 +37,8 @@ const AIAssistant = () => {
     setMessages(prev => [...prev, { role: "user", text: userMessage }]);
     setIsLoading(true);
 
-    // Format history for Gemini
-    const history = messages.map(m => ({
+    // Format history for Gemini - limit to last 10 messages to keep it fast
+    const history = messages.slice(-10).map(m => ({
       role: m.role,
       parts: [{ text: m.text }]
     }));
