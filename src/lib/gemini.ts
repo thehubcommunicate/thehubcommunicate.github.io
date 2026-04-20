@@ -2,38 +2,55 @@ import { GoogleGenAI } from "@google/genai";
 
 // Initialize the Gemini API client
 const getAIClient = () => {
-  const primaryKey = process.env.GEMINI_API_KEY;
-  const secondaryKey = process.env.GEMINI_API_KEY_SECONDARY;
+  // Safe retrieval for both environments
+  let apiKey = "";
   
-  const apiKey = primaryKey || secondaryKey || "";
-  
-  if (!apiKey && typeof window !== 'undefined') {
-    console.warn("Hub-AI: API Key not found. Check your GitHub Secrets (VITE_GEMINI_API_KEY).");
+  try {
+    // Try Vite's define replacement (GitHub Pages / Build)
+    apiKey = process.env.GEMINI_API_KEY || "";
+  } catch (e) {
+    // Fallback if process is not defined
   }
 
-  return new GoogleGenAI({ apiKey });
+  if (!apiKey) {
+    try {
+      apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+    } catch (e) {}
+  }
+  
+  const secondaryKey = (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY_SECONDARY : "") || "";
+  const finalKey = apiKey || secondaryKey;
+  
+  if (!finalKey && typeof window !== 'undefined') {
+    console.error("Hub-AI Configuration Error: Gemini API Key is missing. Please check your environment variables or GitHub Secrets.");
+  }
+
+  return new GoogleGenAI({ apiKey: finalKey });
 };
 
 const ai = getAIClient();
 
 export const HUB_AI_SYSTEM_INSTRUCTION = `
-You are "Hub-AI", the fast concierge for "The Hub". Be concise.
-PRICING:
-1. EDU: 2M-5M VNĐ (Workshop/Talkshow)
-2. LAUNCH: 1.5M-4M VNĐ (Product Launch)
-3. BIRTHDAY: 1M-2.5M VNĐ (Party/Birthday)
-4. OTHER: 4M-7M VNĐ (Community/Club)
-5. PREMIUM: 10M-20M VNĐ (Branding/Showcase)
+You are "Hub-AI", the fast and intelligent concierge for "The Hub". 
+PRICING & SERVICES:
+1. Trải nghiệm giáo dục (Thuyết trình): 2.000.000 - 5.000.000 VNĐ. Nội dung: Workshop, Talkshow, Seminar.
+2. Tổ chức sự kiện ra mắt sản phẩm: 1.500.000 - 4.000.000 VNĐ. Nội dung: Setup và vận hành sự kiện launch sản phẩm.
+3. Tổ chức sự kiện sinh nhật: 1.000.000 - 2.500.000 VNĐ. Bao gồm: Khách mời, MC, Dụng cụ tổ chức.
+4. Tổ chức hoạt động khác: 4.000.000 - 7.000.000 VNĐ. Nội dung: CLB, hoạt động cộng đồng, workshop...
+5. Premium Custom Event (Chuyên sâu): 10.000.000 - 20.000.000 VNĐ. Phù hợp: Branding event, Mini concert, Showcase, Sự kiện cá nhân cao cấp.
 
 AREAS: The Nest (5-10p), Creative Hall (20-40p), Grand Hub (50-100p).
 
 RESPONSE RULE:
-- For booking suggestions: Recommend a category and conclude with: {"action": "recommend", "packageId": "ID"}.
+- For booking suggestions: Recommend a category based on event type, scale, and budget. 
+- ALWAYS conclude with a JSON block: {"action": "recommend", "packageId": "ID"}.
 - IDs: edu-experience, product-launch, birthday-event, other-activity, premium-custom.
-- Example: "Với 25 người sinh nhật giá rẻ, bạn nên chọn gói 'Birthday Event' tại Creative Hall. GIÁ: ~2M VNĐ. {"action": "recommend", "packageId": "birthday-event"}"
+- Example: "Với yêu cầu sinh nhật cho 25 người giá rẻ, bạn nên chọn gói 'Sự kiện sinh nhật' tại Creative Hall. Giá dao động 1.000.000 - 2,500,000 VNĐ. {"action": "recommend", "packageId": "birthday-event"}"
 `;
 
 export async function askHubAI(prompt: string, history: { role: "user" | "model", parts: [{ text: string }] }[] = []) {
+  if (!ai) return "Hub-AI is currently offline. (Initialization failed)";
+  
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -44,26 +61,35 @@ export async function askHubAI(prompt: string, history: { role: "user" | "model"
       config: {
         systemInstruction: HUB_AI_SYSTEM_INSTRUCTION,
         temperature: 0.7,
-        maxOutputTokens: 500, // Keep it fast
+        maxOutputTokens: 500,
       },
     });
 
     if (!response.text) {
+      // Check if it's a safety block or other reason
+      if (response.candidates?.[0]?.finishReason) {
+        return `Hub-AI: I cannot answer that due to ${response.candidates[0].finishReason}.`;
+      }
       throw new Error("Empty response from AI");
     }
 
     return response.text;
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
+    console.error("Gemini API Error Detail:", error);
     
-    // Detailed error for debugging live on GitHub Pages
+    // Extract meaningful error info
     const errorMessage = error?.message || "Unknown Connection Error";
+    const status = error?.status || error?.code || "No Status";
     
-    if (errorMessage.includes("API_KEY_INVALID")) {
-      return "Hub-AI: Lỗi API Key không hợp lệ. Hãy kiểm tra lại GitHub Secrets.";
+    if (errorMessage.includes("API_KEY_INVALID") || status === 403 || status === 401) {
+      return "Hub-AI: Lỗi xác thực (API Key không chính xác). Hãy kiểm tra lại GitHub Secrets.";
     }
     
-    return `The Hub's digital brain is resting. (Lỗi: ${errorMessage})`;
+    if (errorMessage.includes("quota") || status === 429) {
+      return "Hub-AI: Đã hết hạn mức sử dụng (Quota exceeded). Thử lại sau nhé!";
+    }
+    
+    return `Hub-AI đang nghỉ ngơi một chút. (Lỗi: ${errorMessage} - Code: ${status})`;
   }
 }
 

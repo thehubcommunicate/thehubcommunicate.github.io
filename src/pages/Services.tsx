@@ -82,9 +82,16 @@ const Services = () => {
        setIsProcessing(false);
     }
 
-    // Price parsing
-    const priceStr = ordering.price.replace("Từ ", "").replace("tr", "").replace(/,/g, "").replace("đ", "");
-    const price = priceStr.includes("tr") ? parseFloat(priceStr.replace("tr", "")) * 1000000 : parseInt(priceStr);
+    // Price parsing - handle ranges like "2,000,000 – 5,000,000 VNĐ" or "2M - 5M"
+    // We'll take the starting price for the order amount
+    const priceMatch = ordering.price.match(/[0-9.,]+/);
+    const basePriceStr = priceMatch ? priceMatch[0].replace(/[.,]/g, "") : "0";
+    let price = parseInt(basePriceStr);
+    
+    // Handle M shorthand if present
+    if (ordering.price.includes("M") && price < 1000) {
+      price = price * 1000000;
+    }
 
     if (paymentMethod === "hub-coin" && (profile?.hubCoins || 0) < price) {
       alert("Bạn không đủ Hub-Coin để thực hiện giao dịch này!");

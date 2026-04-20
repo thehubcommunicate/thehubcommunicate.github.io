@@ -291,39 +291,47 @@ const Home = () => {
               <p className="text-gray-400 max-w-xl mx-auto font-medium">Lựa chọn gói giải pháp tối ưu cho sự kiện của bạn tại The Hub.</p>
             </div>
             
-            <div className="grid md:grid-cols-4 gap-6">
+            <div className="grid md:grid-cols-5 gap-4">
               {[
                 { 
                   name: "Trải nghiệm giáo dục", 
-                  price: "2.000.000", 
+                  price: "2M - 5M", 
                   unit: "buổi", 
-                  desc: "Cho workshop, talkshow giáo dục",
-                  features: ["Âm thanh, máy chiếu", "Teabreak nhẹ", "Sắp xếp 20-40 người"],
+                  desc: "Cho workshop, talkshow, thuyết trình",
+                  features: ["Thanh âm, máy chiếu", "Teabreak nhẹ", "Sắp xếp 20-40 người"],
                   color: "border-blue-500/20 shadow-blue-500/5"
                 },
                 { 
                   name: "Sự kiện Ra mắt", 
-                  price: "1.500.000", 
-                  unit: "giờ", 
+                  price: "1.5M - 4M", 
+                  unit: "sự kiện", 
                   desc: "Setup & vận hành Launch sản phẩm",
                   features: ["Hệ thống đèn Spotlight", "Wifi 6 High Speed", "Khu vực check-in"],
-                  color: "border-purple-500/20 shadow-purple-500/5",
-                  premium: true
+                  color: "border-purple-500/20 shadow-purple-500/5"
                 },
                 { 
                   name: "Sự kiện Sinh nhật", 
-                  price: "1.000.000", 
+                  price: "1M - 2.5M", 
                   unit: "tiệc", 
-                  desc: "Gói cơ bản cho tiệc cá nhân",
-                  features: ["Dụng cụ tổ chức", "Hệ thống loa Bluetooth", "Trang trí chủ đề"],
-                  color: "border-pink-500/20 shadow-pink-500/5"
+                  desc: "Bao gồm MC, khách mời, dụng cụ",
+                  features: ["Trang trí chủ đề", "Hệ thống loa kéo", "Nhân vật đặc biệt"],
+                  color: "border-pink-500/20 shadow-pink-500/5",
+                  premium: true
                 },
                 { 
-                  name: "Hoạt động chuyên sâu", 
-                  price: "10.000.000", 
+                  name: "Hoạt động khác", 
+                  price: "4M - 7M", 
+                  unit: "ngày", 
+                  desc: "CLB, cộng đồng, workshop...",
+                  features: ["Toàn bộ sảnh chính", "Trà bánh trọn gói", "Admin hỗ trợ"],
+                  color: "border-cyan-500/20 shadow-cyan-500/5"
+                },
+                { 
+                  name: "Premium Custom", 
+                  price: "10M - 20M", 
                   unit: "trọn gói", 
-                  desc: "Premium Custom Event cao cấp",
-                  features: ["Concept sáng tạo riêng", "Run-of-show chi tiết", "Full-service Team"],
+                  desc: "Chuyên sâu theo yêu cầu riêng",
+                  features: ["Concept sáng tạo riêng", "Kịch bản chi tiết", "Điều phối nhân sự"],
                   color: "border-amber-500/20 shadow-amber-500/5"
                 }
               ].map((p, i) => (
@@ -332,19 +340,19 @@ const Home = () => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.1 }}
-                  className={`p-10 rounded-[2.5rem] liquid-glass border transition-all hover:scale-[1.02] flex flex-col ${p.color}`}
+                  className={`p-6 rounded-[2.5rem] liquid-glass border transition-all hover:scale-[1.02] flex flex-col ${p.color}`}
                 >
-                  <h3 className="text-sm font-black uppercase tracking-[0.2em] mb-2">{p.name}</h3>
-                  <div className="flex items-baseline gap-1 mb-6">
-                    <span className="text-4xl font-black">{p.price}</span>
-                    <span className="text-gray-500 text-xs font-bold font-mono">đ/{p.unit}</span>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] mb-2">{p.name}</h3>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="text-xl font-black">{p.price}</span>
+                    <span className="text-gray-500 text-[10px] font-bold font-mono">VNĐ</span>
                   </div>
-                  <p className="text-gray-400 text-xs mb-8 font-medium leading-relaxed">{p.desc}</p>
+                  <p className="text-gray-400 text-[10px] mb-6 font-medium leading-relaxed h-8 line-clamp-2">{p.desc}</p>
                   
-                  <ul className="space-y-4 mb-10 flex-1">
+                  <ul className="space-y-3 mb-8 flex-1">
                     {p.features.map((f, fi) => (
-                      <li key={fi} className="flex items-center gap-3 text-xs font-medium text-gray-300">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                      <li key={fi} className="flex items-center gap-2 text-[10px] font-medium text-gray-300">
+                        <div className="w-1 h-1 rounded-full bg-white/20" />
                         {f}
                       </li>
                     ))}
