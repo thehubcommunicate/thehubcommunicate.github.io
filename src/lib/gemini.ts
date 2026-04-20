@@ -46,7 +46,7 @@ export async function* askHubAIStream(prompt: string, history: { role: "user" | 
   
   try {
     const stream = await ai.models.generateContentStream({
-      model: "gemini-3.1-flash-lite-preview",
+      model: "gemini-3-flash-preview",
       contents: [
         ...history,
         { role: "user", parts: [{ text: prompt }] }
@@ -67,7 +67,13 @@ export async function* askHubAIStream(prompt: string, history: { role: "user" | 
   } catch (error: any) {
     console.error("Gemini Streaming Error:", error);
     const errorMessage = error?.message || "Unknown Connection Error";
-    yield `Hub-AI: ${errorMessage}`;
+    const status = error?.status || error?.code || 500;
+    
+    if (status === 503) {
+      yield "Hub-AI: Máy chủ đang quá tải (Code 503). Bạn vui lòng đợi 30 giây rồi thử lại nhé!";
+    } else {
+      yield `Hub-AI: ${errorMessage} (Code: ${status})`;
+    }
   }
 }
 
@@ -76,7 +82,7 @@ export async function askHubAI(prompt: string, history: { role: "user" | "model"
   
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
+      model: "gemini-3-flash-preview",
       contents: [
         ...history,
         { role: "user", parts: [{ text: prompt }] }
@@ -110,6 +116,10 @@ export async function askHubAI(prompt: string, history: { role: "user" | "model"
     
     if (errorMessage.includes("quota") || status === 429) {
       return "Hub-AI: Đã hết hạn mức sử dụng (Quota exceeded). Thử lại sau nhé!";
+    }
+
+    if (status === 503) {
+      return "Hub-AI: Máy chủ AI đang quá tải (Code 503). Hãy thử lại sau 30 giây nhé!";
     }
     
     return `Hub-AI đang nghỉ ngơi một chút. (Lỗi: ${errorMessage} - Code: ${status})`;
