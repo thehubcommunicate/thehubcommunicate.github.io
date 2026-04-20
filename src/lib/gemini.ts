@@ -9,6 +9,11 @@ const getAIClient = () => {
   
   // Use primary key if available, otherwise secondary
   const apiKey = primaryKey || secondaryKey || "";
+  
+  if (!apiKey && typeof window !== 'undefined') {
+    console.warn("Hub-AI: API Key not found. Please check your GitHub Secrets and Environment Mappings.");
+  }
+
   return new GoogleGenAI({ apiKey });
 };
 
@@ -47,7 +52,7 @@ GUIDELINES:
 export async function askHubAI(prompt: string, history: { role: "user" | "model", parts: [{ text: string }] }[] = []) {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: [
         ...history,
         { role: "user", parts: [{ text: prompt }] }
