@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Zap, Users, Lightbulb, Mic2, ArrowRight, ChevronRight, Globe, Layout, Cpu, Eye, Camera, Music, Coffee, Monitor, CheckCircle2, ShoppingCart, Loader2, Check } from "lucide-react";
 import PageLayout from "../components/PageLayout";
 import { useAuth } from "../components/AuthProvider";
 import { placeServiceOrder, db } from "../lib/firebase";
 import { doc, updateDoc, increment } from "firebase/firestore";
 import { Wallet, CreditCard, QrCode as QrIcon, Copy } from "lucide-react";
+import { SERVICES_PACKAGES } from "../constants/services";
 
 import { askHubAI } from "../lib/gemini";
 import { Sparkles, Search } from "lucide-react";
@@ -30,6 +31,7 @@ const Services = () => {
     }
     setIsAiMatching(false);
   };
+  
   const [ordering, setOrdering] = useState<any | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
@@ -44,6 +46,28 @@ const Services = () => {
      cvv: ""
   });
   const [qrCodeData, setQrCodeData] = useState("");
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const orderId = searchParams.get('order');
+    if (orderId) {
+      const pkg = SERVICES_PACKAGES.find(p => p.id === orderId);
+      if (pkg) setOrdering(pkg);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const handleAiTrigger = (e: any) => {
+      const packageId = e.detail.packageId;
+      const pkg = SERVICES_PACKAGES.find(p => p.id === packageId);
+      if (pkg) {
+        setOrdering(pkg);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+    window.addEventListener('ai-trigger-order', handleAiTrigger);
+    return () => window.removeEventListener('ai-trigger-order', handleAiTrigger);
+  }, []);
 
   const handlePlaceOrder = async () => {
     if (!user || !ordering || !paymentMethod) return;
@@ -129,44 +153,7 @@ const Services = () => {
     },
   ];
 
-  const packages = [
-    { 
-      id: "edu-experience", 
-      title: "Trải nghiệm giáo dục", 
-      desc: "Workshop, Talkshow, Seminar",
-      price: "2,000,000đ", 
-      features: ["Âm thanh, máy chiếu", "Teabreak nhẹ", "Sắp xếp 20-40 người", "Hỗ trợ kỹ thuật"], 
-      bgClass: "bg-hub-blue",
-      textClass: "text-hub-blue",
-      borderClass: "border-hub-blue/20",
-      shadowClass: "shadow-hub-blue/20",
-      tag: "Thuyết trình"
-    },
-    { 
-      id: "product-launch", 
-      title: "Ra mắt sản phẩm", 
-      desc: "Setup & Vận hành sự kiện",
-      price: "1,500,000đ", 
-      features: ["Spotlight system", "Wifi 6 High Speed", "Khu vực check-in", "Standee thiết kế"], 
-      bgClass: "bg-hub-purple",
-      textClass: "text-hub-purple",
-      borderClass: "border-hub-purple/20",
-      shadowClass: "shadow-hub-purple/20",
-      tag: "Sự kiện Launch"
-    },
-    { 
-      id: "premium-custom", 
-      title: "Premium Custom", 
-      desc: "Branding / Mini Concert / Showcase",
-      price: "10,000,000đ", 
-      features: ["Concept sáng tạo riêng", "Run-of-show chi tiết", "Full-service Team", "Hậu kỳ Video Highlight"], 
-      bgClass: "bg-hub-magenta",
-      textClass: "text-hub-magenta",
-      borderClass: "border-hub-magenta/20",
-      shadowClass: "shadow-hub-magenta/20",
-      tag: "Trọn gói chuyên sâu"
-    },
-  ];
+  const packages = SERVICES_PACKAGES;
 
   const comparison = [
     { feature: "Sức chứa", basic: "20-40 người", team: "30-60 người", event: "50-150 người" },

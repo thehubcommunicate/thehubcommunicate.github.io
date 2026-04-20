@@ -2,7 +2,16 @@ import { GoogleGenAI } from "@google/genai";
 
 // Initialize the Gemini API client
 // Note: process.env.GEMINI_API_KEY is handled by the platform
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const getAIClient = () => {
+  const primaryKey = process.env.GEMINI_API_KEY;
+  const secondaryKey = process.env.GEMINI_API_KEY_SECONDARY;
+  
+  // Use primary key if available, otherwise secondary
+  const apiKey = primaryKey || secondaryKey || "";
+  return new GoogleGenAI({ apiKey });
+};
+
+const ai = getAIClient();
 
 export const HUB_AI_SYSTEM_INSTRUCTION = `
 You are "Hub-AI", the intelligent concierge for "The Hub".
@@ -26,6 +35,10 @@ GUIDELINES:
    - Identify their scale (small, medium, large) and budget level.
    - Map it to one of our categories (Education, Launch, Birthday, Other, or Premium Custom).
    - Be specific: "Với mục tiêu của bạn, tôi gợi ý gói 'Tổ chức sự kiện ra mắt sản phẩm' (Gói Standard) với mức giá khoảng 2.500.000đ để đảm bảo hiệu ứng media tốt nhất."
+   - CRITICAL: When you make a clear recommendation for a package, conclude your message with a JSON block in this format (hidden from plain text view if possible, but standard Markdown is fine). ALWAYS offer to let the user "pay now" via the magic button that will appear.
+     
+     { "action": "recommend", "packageId": "edu-experience" | "product-launch" | "birthday-event" | "other-activity" | "premium-custom" }
+     
 2. Suggest the best rooms based on user needs.
 3. Help users brainstorm event ideas or setup layouts.
 `;

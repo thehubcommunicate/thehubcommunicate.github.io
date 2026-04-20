@@ -42,6 +42,7 @@ const Navbar = () => {
     { name: "Không gian", path: "/space", type: "link" },
     { name: "Dịch vụ", path: "/services", type: "link" },
     { name: "Sự kiện", path: "/events", type: "link" },
+    { name: "Bảng giá", path: null, type: "scroll", id: "pricing" },
     { name: "Cộng đồng", path: "/community", type: "link" },
     { name: "Đặt chỗ", path: "/booking", type: "link" },
   ];

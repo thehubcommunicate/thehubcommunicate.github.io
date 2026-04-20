@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Bot, Send, X, Minimize2, Maximize2, Sparkles, Zap, MessageSquare } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bot, Send, X, Minimize2, Maximize2, Sparkles, Zap, MessageSquare, CreditCard, ShoppingCart, Check, Loader2 } from "lucide-react";
 import { askHubAI } from "../lib/gemini";
+import { SERVICES_PACKAGES } from "../constants/services";
 
 const AIAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,7 +12,10 @@ const AIAssistant = () => {
     { role: "model", text: "Chào Huber! Tôi là Hub-AI. Tôi có thể giúp bạn tìm phòng, lên ý tưởng sự kiện hoặc kết nối đồng đội. Bạn cần gì hôm nay?" }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
+  const [orderComplete, setOrderComplete] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleOpen = () => setIsOpen(true);
@@ -39,8 +44,67 @@ const AIAssistant = () => {
     }));
 
     const response = await askHubAI(userMessage, history);
-    setMessages(prev => [...prev, { role: "model", text: response }]);
+    
+    // Clean JSON from response if exists
+    let cleanResponse = response;
+    let recPackageId = null;
+    try {
+      const jsonMatch = response.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+         const data = JSON.parse(jsonMatch[0]);
+         if (data.action === "recommend" && data.packageId) {
+            recPackageId = data.packageId;
+         }
+         cleanResponse = response.replace(/```json[\s\S]*?```|```[\s\S]*?```|\{[\s\S]*?\}/g, "").trim();
+      }
+    } catch (e) {}
+
+    setMessages(prev => [...prev, { role: "model", text: cleanResponse || response }]);
     setIsLoading(false);
+
+    // AUTO-NAVIGATE to checkout if recommendation found
+    if (recPackageId) {
+      setTimeout(() => {
+        // Trigger order modal on the services page
+        navigate(`/services?order=${recPackageId}`);
+        // Also dispatch event in case we are already on the page
+        window.dispatchEvent(new CustomEvent('ai-trigger-order', { detail: { packageId: recPackageId } }));
+      }, 1500); // Small delay so user can read the text first
+    }
+  };
+
+  const parseRecommendation = (text: string) => {
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+         const data = JSON.parse(jsonMatch[0]);
+         if (data.action === "recommend" && data.packageId) {
+            return SERVICES_PACKAGES.find(p => p.id === data.packageId);
+         }
+      }
+    } catch (e) {}
+    return null;
+  };
+
+  const lastModelMessage = [...messages].reverse().find(m => m.role === "model");
+  const recommendation = lastModelMessage ? parseRecommendation(lastModelMessage.text) : null;
+
+  const handleQuickPay = async () => {
+    if (!recommendation) return;
+    
+    // Auto-trigger real UI
+    navigate(`/services?order=${recommendation.id}`);
+    window.dispatchEvent(new CustomEvent('ai-trigger-order', { detail: { packageId: recommendation.id } }));
+    
+    setIsProcessingOrder(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setOrderComplete(true);
+    setIsProcessingOrder(false);
+    
+    setMessages(prev => [...prev, { 
+      role: "model", 
+      text: `🚀 Đã mở giao diện thanh toán cho gói "${recommendation.title}". Bạn chỉ cần chọn phương thức thanh toán là xong!`
+    }]);
   };
 
   return (
@@ -82,15 +146,43 @@ const AIAssistant = () => {
                   key={i}
                   initial={{ opacity: 0, x: m.role === 'user' ? 20 : -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}
                 >
                   <div className={`max-w-[85%] p-4 rounded-2xl text-xs font-medium leading-relaxed ${
                     m.role === 'user' 
                       ? 'bg-hub-blue text-white rounded-tr-none shadow-lg shadow-hub-blue/20' 
                       : 'glass border-white/5 rounded-tl-none'
                   }`}>
-                    {m.text}
+                    {/* Filter out JSON from display if cleaning failed during handleSend */}
+                    {m.text.replace(/\{[\s\S]*?\}/g, "").trim()}
                   </div>
+
+                  {/* If this message is a recommendation from AI, show the action button */}
+                  {m.role === "model" && !isLoading && parseRecommendation(m.text) && !orderComplete && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-3 w-full max-w-[85%]"
+                    >
+                      <div className="glass p-4 rounded-2xl border-hub-purple/30 bg-hub-purple/5 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black uppercase text-hub-purple">Hub-AI Đề xuất</span>
+                          <span className="text-[10px] font-bold text-white">{parseRecommendation(m.text)?.price}</span>
+                        </div>
+                        <button 
+                          onClick={handleQuickPay}
+                          disabled={isProcessingOrder}
+                          className="w-full py-2.5 bg-hub-purple text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-lg shadow-hub-purple/20"
+                        >
+                          {isProcessingOrder ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>Thanh toán ngay <CreditCard className="w-3.5 h-3.5" /></>
+                          )}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
                 </motion.div>
               ))}
               {isLoading && (

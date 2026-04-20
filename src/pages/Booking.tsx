@@ -220,6 +220,33 @@ const Booking = () => {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-12"
               >
+                {/* Magic AI Guide Card */}
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="max-w-4xl mx-auto glass p-8 rounded-[3rem] border-hub-purple/30 bg-gradient-to-r from-hub-purple/10 to-hub-blue/10 flex flex-col md:flex-row items-center gap-8 shadow-2xl shadow-hub-purple/10 relative overflow-hidden group"
+                >
+                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                  <div className="w-20 h-20 rounded-[2rem] bg-hub-purple flex items-center justify-center text-white shrink-0 shadow-lg shadow-hub-purple/40">
+                    <Sparkles className="w-10 h-10 animate-pulse" />
+                  </div>
+                  <div className="flex-1 text-center md:text-left">
+                    <h3 className="text-2xl font-black uppercase italic tracking-tight mb-2">Bạn đang phân vân?</h3>
+                    <p className="text-gray-400 text-xs font-medium uppercase tracking-widest leading-relaxed">
+                      Để <span className="text-hub-purple font-bold">Hub-AI</span> thiết kế sự kiện trọn gói từ A-Z cho bạn. Việc của bạn chỉ là <span className="text-white font-bold">Thanh toán & Trải nghiệm</span>.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-hub-ai'))}
+                    className="px-8 py-4 bg-white text-hub-black rounded-full font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all shadow-xl"
+                  >
+                    Kích hoạt AI Guide
+                  </button>
+                  <div className="absolute -bottom-1 -right-1 opacity-10">
+                    <Zap className="w-24 h-24 text-white" />
+                  </div>
+                </motion.div>
+
                 <div className="text-center space-y-4">
                   <h2 className="text-5xl font-black uppercase italic tracking-tighter text-gradient-cosmic">Mục tiêu & Ngân sách</h2>
                   <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] max-w-lg mx-auto leading-relaxed">Chọn loại hình sự kiện và tầng ngân sách để chúng tớ gợi ý concept tối ưu nhất cho bạn.</p>
