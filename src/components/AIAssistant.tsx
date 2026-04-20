@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import { Bot, Send, X, Minimize2, Maximize2, Sparkles, Zap, MessageSquare, CreditCard, ShoppingCart, Check, Loader2 } from "lucide-react";
-import { askHubAI } from "../lib/gemini";
+import { askHubAIStream } from "../lib/gemini";
 import { SERVICES_PACKAGES } from "../constants/services";
 
 const AIAssistant = () => {
@@ -43,16 +43,33 @@ const AIAssistant = () => {
       parts: [{ text: m.text }]
     }));
 
-    const response = await askHubAI(userMessage, history);
+    // Start with an empty message for the model
+    setMessages(prev => [...prev, { role: "model", text: "" }]);
     
-    // Improved JSON extraction for Gemini responses
-    let cleanResponse = response;
+    let fullResponse = "";
+    
+    try {
+      const stream = askHubAIStream(userMessage, history);
+      
+      for await (const chunk of stream) {
+        fullResponse += chunk;
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1].text = fullResponse;
+          return newMessages;
+        });
+      }
+    } catch (e) {
+      console.error("Chat error:", e);
+    } finally {
+      setIsLoading(false);
+    }
+
+    // Recommendation logic after full response is received
     let recPackageId = null;
     try {
-      // Find the LAST JSON block (most likely the recommendation)
-      const matches = response.match(/\{[\s\S]*?\}/g);
+      const matches = fullResponse.match(/\{[\s\S]*?\}/g);
       if (matches) {
-         // Try to find the recommendation JSON
          for (const match of matches) {
            try {
               const data = JSON.parse(match);
@@ -61,25 +78,15 @@ const AIAssistant = () => {
               }
            } catch (e) {}
          }
-         // Strip all JSON/Markdown blocks for display, being careful with greedy matching if needed
-         // We use a cleaner approach: remove anything that looks like a markdown block or a standalone JSON
-         cleanResponse = response.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, "")
-                                 .replace(/\{"action":\s*"recommend"[\s\S]*?\}/g, "")
-                                 .trim();
       }
     } catch (e) {}
-
-    setMessages(prev => [...prev, { role: "model", text: cleanResponse || response }]);
-    setIsLoading(false);
 
     // AUTO-NAVIGATE to checkout if recommendation found
     if (recPackageId) {
       setTimeout(() => {
-        // Trigger order modal on the services page
         navigate(`/services?order=${recPackageId}`);
-        // Also dispatch event in case we are already on the page
         window.dispatchEvent(new CustomEvent('ai-trigger-order', { detail: { packageId: recPackageId } }));
-      }, 1500); // Small delay so user can read the text first
+      }, 1500);
     }
   };
 

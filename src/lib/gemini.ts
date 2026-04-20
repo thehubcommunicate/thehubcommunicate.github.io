@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
 // Initialize the Gemini API client
 const getAIClient = () => {
@@ -35,12 +35,18 @@ RESPONSE RULE:
 - Example: "Với yêu cầu sinh nhật cho 25 người giá rẻ, bạn nên chọn gói 'Sự kiện sinh nhật' tại Creative Hall. Giá dao động 1.000.000 - 2,500,000 VNĐ. {"action": "recommend", "packageId": "birthday-event"}"
 `;
 
-export async function askHubAI(prompt: string, history: { role: "user" | "model", parts: [{ text: string }] }[] = []) {
-  if (!ai) return "Hub-AI is currently offline. (Initialization failed)";
+/**
+ * FAST STREAMING CHAT
+ */
+export async function* askHubAIStream(prompt: string, history: { role: "user" | "model", parts: [{ text: string }] }[] = []) {
+  if (!ai) {
+    yield "Hub-AI is currently offline. (Initialization failed)";
+    return;
+  }
   
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+    const stream = await ai.models.generateContentStream({
+      model: "gemini-3.1-flash-lite-preview",
       contents: [
         ...history,
         { role: "user", parts: [{ text: prompt }] }
@@ -49,11 +55,41 @@ export async function askHubAI(prompt: string, history: { role: "user" | "model"
         systemInstruction: HUB_AI_SYSTEM_INSTRUCTION,
         temperature: 0.7,
         maxOutputTokens: 500,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+      },
+    });
+
+    for await (const chunk of stream) {
+      if (chunk.text) {
+        yield chunk.text;
+      }
+    }
+  } catch (error: any) {
+    console.error("Gemini Streaming Error:", error);
+    const errorMessage = error?.message || "Unknown Connection Error";
+    yield `Hub-AI: ${errorMessage}`;
+  }
+}
+
+export async function askHubAI(prompt: string, history: { role: "user" | "model", parts: [{ text: string }] }[] = []) {
+  if (!ai) return "Hub-AI is currently offline. (Initialization failed)";
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-lite-preview",
+      contents: [
+        ...history,
+        { role: "user", parts: [{ text: prompt }] }
+      ],
+      config: {
+        systemInstruction: HUB_AI_SYSTEM_INSTRUCTION,
+        temperature: 0.7,
+        maxOutputTokens: 500,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
       },
     });
 
     if (!response.text) {
-      // Check if it's a safety block or other reason
       if (response.candidates?.[0]?.finishReason) {
         return `Hub-AI: I cannot answer that due to ${response.candidates[0].finishReason}.`;
       }
