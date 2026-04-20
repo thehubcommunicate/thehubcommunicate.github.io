@@ -282,6 +282,112 @@ const Home = () => {
               </div>
            </div>
         </section>
+
+        {/* Pricing Section */}
+        <section id="pricing" className="py-32 relative">
+          <div className="container mx-auto px-6">
+            <div className="text-center mb-20">
+              <h2 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter mb-4">Bảng Giá Dịch Vụ</h2>
+              <p className="text-gray-400 max-w-xl mx-auto font-medium">Lựa chọn gói giải pháp tối ưu cho sự kiện của bạn tại The Hub.</p>
+            </div>
+            
+            <div className="grid md:grid-cols-4 gap-6">
+              {[
+                { 
+                  name: "Trải nghiệm giáo dục", 
+                  price: "2.000.000", 
+                  unit: "buổi", 
+                  desc: "Cho workshop, talkshow giáo dục",
+                  features: ["Âm thanh, máy chiếu", "Teabreak nhẹ", "Sắp xếp 20-40 người"],
+                  color: "border-blue-500/20 shadow-blue-500/5"
+                },
+                { 
+                  name: "Sự kiện Ra mắt", 
+                  price: "1.500.000", 
+                  unit: "giờ", 
+                  desc: "Setup & vận hành Launch sản phẩm",
+                  features: ["Hệ thống đèn Spotlight", "Wifi 6 High Speed", "Khu vực check-in"],
+                  color: "border-purple-500/20 shadow-purple-500/5",
+                  premium: true
+                },
+                { 
+                  name: "Sự kiện Sinh nhật", 
+                  price: "1.000.000", 
+                  unit: "tiệc", 
+                  desc: "Gói cơ bản cho tiệc cá nhân",
+                  features: ["Dụng cụ tổ chức", "Hệ thống loa Bluetooth", "Trang trí chủ đề"],
+                  color: "border-pink-500/20 shadow-pink-500/5"
+                },
+                { 
+                  name: "Hoạt động chuyên sâu", 
+                  price: "10.000.000", 
+                  unit: "trọn gói", 
+                  desc: "Premium Custom Event cao cấp",
+                  features: ["Concept sáng tạo riêng", "Run-of-show chi tiết", "Full-service Team"],
+                  color: "border-amber-500/20 shadow-amber-500/5"
+                }
+              ].map((p, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.1 }}
+                  className={`p-10 rounded-[2.5rem] liquid-glass border transition-all hover:scale-[1.02] flex flex-col ${p.color}`}
+                >
+                  <h3 className="text-sm font-black uppercase tracking-[0.2em] mb-2">{p.name}</h3>
+                  <div className="flex items-baseline gap-1 mb-6">
+                    <span className="text-4xl font-black">{p.price}</span>
+                    <span className="text-gray-500 text-xs font-bold font-mono">đ/{p.unit}</span>
+                  </div>
+                  <p className="text-gray-400 text-xs mb-8 font-medium leading-relaxed">{p.desc}</p>
+                  
+                  <ul className="space-y-4 mb-10 flex-1">
+                    {p.features.map((f, fi) => (
+                      <li key={fi} className="flex items-center gap-3 text-xs font-medium text-gray-300">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button 
+                    onClick={() => navigate("/booking")}
+                    className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                      p.premium ? 'bg-hub-purple text-white shadow-lg shadow-hub-purple/20' : 'bg-white/5 text-white hover:bg-white/10'
+                    }`}
+                  >
+                    Đăng ký ngay
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* AI Booking Assistant Promo */}
+        <section className="pb-32 relative">
+          <div className="container mx-auto px-6">
+            <div className="liquid-glass rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden group border border-white/5">
+              <div className="absolute inset-0 bg-gradient-to-r from-hub-purple/10 to-hub-blue/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              <div className="w-20 h-20 rounded-3xl bg-hub-purple/20 flex items-center justify-center mx-auto mb-10 text-hub-purple animate-bounce">
+                <Sparkles className="w-10 h-10" />
+              </div>
+              
+              <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-6">Bạn chưa biết chọn gói nào?</h2>
+              <p className="text-gray-400 max-w-2xl mx-auto text-sm md:text-base leading-relaxed mb-12 font-medium">
+                Hãy để <span className="text-white font-bold">Hub-AI</span> phân tích quy mô, mục tiêu và ngân sách của bạn để đưa ra gợi ý không gian & dịch vụ tối ưu nhất.
+              </p>
+              
+              <button 
+                onClick={() => window.dispatchEvent(new CustomEvent('open-hub-ai'))}
+                className="px-12 py-6 rounded-full bg-white text-hub-black font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform flex items-center gap-3 mx-auto"
+              >
+                Nhận gợi ý từ Hub-AI <Zap className="w-4 h-4 fill-hub-black" />
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
 
       <Footer />

@@ -131,48 +131,48 @@ const Services = () => {
 
   const packages = [
     { 
-      id: "basic-hub", 
-      title: "Gói Basic Hub", 
-      desc: "Dành cho cá nhân cần tập trung",
-      price: "150,000đ", 
-      features: ["1 Chỗ ngồi chuyên nghiệp", "Nước uống tự chọn", "WiFi High-speed", "Phòng Quiet Box"], 
+      id: "edu-experience", 
+      title: "Trải nghiệm giáo dục", 
+      desc: "Workshop, Talkshow, Seminar",
+      price: "2,000,000đ", 
+      features: ["Âm thanh, máy chiếu", "Teabreak nhẹ", "Sắp xếp 20-40 người", "Hỗ trợ kỹ thuật"], 
       bgClass: "bg-hub-blue",
       textClass: "text-hub-blue",
       borderClass: "border-hub-blue/20",
       shadowClass: "shadow-hub-blue/20",
-      tag: "Cá nhân"
+      tag: "Thuyết trình"
     },
     { 
-      id: "team-hub", 
-      title: "Gói Team Hub", 
-      desc: "Combo nhóm cho bài tập lớn",
-      price: "800,000đ", 
-      features: ["Phòng riêng 5-10 người", "Bảng trắng & Bút dạ", "Máy chiếu HD", "Ưu đãi 10% Teabreak"], 
+      id: "product-launch", 
+      title: "Ra mắt sản phẩm", 
+      desc: "Setup & Vận hành sự kiện",
+      price: "1,500,000đ", 
+      features: ["Spotlight system", "Wifi 6 High Speed", "Khu vực check-in", "Standee thiết kế"], 
       bgClass: "bg-hub-purple",
       textClass: "text-hub-purple",
       borderClass: "border-hub-purple/20",
       shadowClass: "shadow-hub-purple/20",
-      tag: "Nhóm (5-10 người)"
+      tag: "Sự kiện Launch"
     },
     { 
-      id: "event-master", 
-      title: "Gói Event Master", 
-      desc: "Niềm tự hào của The Hub",
-      price: "5,000,000đ", 
-      features: ["Toàn bộ Hall sự kiện", "Trang trí theo chủ đề", "Hệ thống âm thanh/ánh sáng", "Dịch vụ Teabreak trọn gói"], 
+      id: "premium-custom", 
+      title: "Premium Custom", 
+      desc: "Branding / Mini Concert / Showcase",
+      price: "10,000,000đ", 
+      features: ["Concept sáng tạo riêng", "Run-of-show chi tiết", "Full-service Team", "Hậu kỳ Video Highlight"], 
       bgClass: "bg-hub-magenta",
       textClass: "text-hub-magenta",
       borderClass: "border-hub-magenta/20",
       shadowClass: "shadow-hub-magenta/20",
-      tag: "Sự kiện trọn gói"
+      tag: "Trọn gói chuyên sâu"
     },
   ];
 
   const comparison = [
-    { feature: "Sức chứa", basic: "1 người", team: "5-10 người", event: "50-100 người" },
-    { feature: "Tiện ích đi kèm", basic: "Cơ bản", team: "Đầy đủ", event: "Cao cấp/Tùy biến" },
-    { feature: "Hỗ trợ kỹ thuật", basic: "Tự phục vụ", team: "Theo yêu cầu", event: "2 kỹ thuật viên trực" },
-    { feature: "Trang trí", basic: "Không", team: "Cơ bản", event: "Theo yêu cầu riêng" },
+    { feature: "Sức chứa", basic: "20-40 người", team: "30-60 người", event: "50-150 người" },
+    { feature: "Tiện ích đi kèm", basic: "Tiêu chuẩn", team: "Chuyên nghiệp", event: "Cao cấp/Tùy biến" },
+    { feature: "Hỗ trợ kỹ thuật", basic: "Hỗ trợ 1-1", team: "Team kỹ thuật riêng", event: "Trọn gói vận hành" },
+    { feature: "Concept", basic: "Theo mẫu", team: "Tùy chỉnh nhẹ", event: "Sáng tạo riêng biệt" },
   ];
 
   const equipment = [
@@ -324,9 +324,9 @@ const Services = () => {
                   <thead>
                     <tr className="border-b border-white/10">
                       <th className="py-6 text-[10px] uppercase tracking-widest text-gray-500">Đặc tính</th>
-                      <th className="py-6 text-[10px] uppercase tracking-widest text-hub-blue">Basic Hub</th>
-                      <th className="py-6 text-[10px] uppercase tracking-widest text-hub-purple">Team Hub</th>
-                      <th className="py-6 text-[10px] uppercase tracking-widest text-hub-magenta">Event Master</th>
+                      <th className="py-6 text-[10px] uppercase tracking-widest text-hub-blue">Thuyết trình</th>
+                      <th className="py-6 text-[10px] uppercase tracking-widest text-hub-purple">Ra mắt SP</th>
+                      <th className="py-6 text-[10px] uppercase tracking-widest text-hub-magenta">Premium Custom</th>
                     </tr>
                   </thead>
                   <tbody>

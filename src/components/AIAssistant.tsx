@@ -13,6 +13,12 @@ const AIAssistant = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-hub-ai', handleOpen);
+    return () => window.removeEventListener('open-hub-ai', handleOpen);
+  }, []);
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
@@ -97,6 +103,26 @@ const AIAssistant = () => {
                 </div>
               )}
             </div>
+
+            {/* Quick Suggestions */}
+            {!isLoading && messages.length === 1 && (
+              <div className="px-6 pb-2 flex flex-wrap gap-2">
+                {[
+                  "Gợi ý gói đặt chỗ phù hợp?",
+                  "Tiệc sinh nhật 20 người hết bao nhiêu?",
+                  "Sự kiện ra mắt cần những gì?",
+                  "Workshop giáo dục chọn phòng nào?"
+                ].map((s, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => { setInput(s); }}
+                    className="text-[10px] font-bold px-3 py-1.5 glass border-white/10 rounded-full hover:bg-white/10 transition-colors uppercase tracking-wider"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Input Area */}
             <div className="p-4 border-t border-white/5">

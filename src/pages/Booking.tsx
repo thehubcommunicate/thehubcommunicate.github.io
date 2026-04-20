@@ -223,6 +223,13 @@ const Booking = () => {
                 <div className="text-center space-y-4">
                   <h2 className="text-5xl font-black uppercase italic tracking-tighter text-gradient-cosmic">Mục tiêu & Ngân sách</h2>
                   <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] max-w-lg mx-auto leading-relaxed">Chọn loại hình sự kiện và tầng ngân sách để chúng tớ gợi ý concept tối ưu nhất cho bạn.</p>
+                  
+                  <button 
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-hub-ai'))}
+                    className="inline-flex items-center gap-2 px-6 py-2 rounded-full glass border-hub-purple/30 text-[10px] font-black uppercase tracking-widest text-hub-purple hover:bg-hub-purple hover:text-white transition-all scale-95 hover:scale-100"
+                  >
+                    <Sparkles className="w-4 h-4" /> Bạn cần AI gợi ý?
+                  </button>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-12">
