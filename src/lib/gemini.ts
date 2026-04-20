@@ -1,10 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
 
 // Initialize the Gemini API client
-// Note: process.env.GEMINI_API_KEY is handled by the platform
 const getAIClient = () => {
-  const primaryKey = process.env.GEMINI_API_KEY;
-  const secondaryKey = process.env.GEMINI_API_KEY_SECONDARY;
+  // AI Studio (Dev) uses process.env.GEMINI_API_KEY
+  // GitHub/Vite (Build) uses import.meta.env.VITE_GEMINI_API_KEY
+  const primaryKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : "");
+  const secondaryKey = import.meta.env.VITE_GEMINI_API_KEY_SECONDARY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY_SECONDARY : "");
   
   // Use primary key if available, otherwise secondary
   const apiKey = primaryKey || secondaryKey || "";
