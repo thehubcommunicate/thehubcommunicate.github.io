@@ -55,7 +55,7 @@ export async function* askHubAIStream(prompt: string, history: { role: "user" | 
         systemInstruction: HUB_AI_SYSTEM_INSTRUCTION,
         temperature: 0.7,
         maxOutputTokens: 500,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        // Removed thinkingConfig to avoid potential 400 errors in some regions
       },
     });
 
@@ -71,6 +71,8 @@ export async function* askHubAIStream(prompt: string, history: { role: "user" | 
     
     if (status === 503) {
       yield "Hub-AI: Máy chủ đang quá tải (Code 503). Bạn vui lòng đợi 30 giây rồi thử lại nhé!";
+    } else if (status === 400) {
+      yield `Hub-AI: Lỗi yêu cầu (Code 400). Có vẻ như dữ liệu gửi đi không hợp lệ. Hãy thử làm mới trình duyệt.`;
     } else {
       yield `Hub-AI: ${errorMessage} (Code: ${status})`;
     }
@@ -91,7 +93,6 @@ export async function askHubAI(prompt: string, history: { role: "user" | "model"
         systemInstruction: HUB_AI_SYSTEM_INSTRUCTION,
         temperature: 0.7,
         maxOutputTokens: 500,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
       },
     });
 

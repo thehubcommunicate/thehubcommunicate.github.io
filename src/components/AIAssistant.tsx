@@ -37,11 +37,16 @@ const AIAssistant = () => {
     setMessages(prev => [...prev, { role: "user", text: userMessage }]);
     setIsLoading(true);
 
-    // Format history for Gemini - limit to last 10 messages to keep it fast
-    const history = messages.slice(-10).map(m => ({
-      role: m.role,
-      parts: [{ text: m.text }]
-    }));
+    // Format history for Gemini
+    // CRITICAL: Gemini history MUST start with 'user' role. 
+    // We skip the first greeting message if it's 'model' and ensure correct structure.
+    const history = messages
+      .filter((m, index) => !(index === 0 && m.role === "model")) // Skip initial prompt if it's model
+      .slice(-10)
+      .map(m => ({
+        role: m.role,
+        parts: [{ text: m.text }]
+      }));
 
     // Start with an empty message for the model
     setMessages(prev => [...prev, { role: "model", text: "" }]);
